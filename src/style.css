@@ -2125,51 +2125,56 @@ footer > span:first-child {
   font: 10px monospace;
   color: #a4ad91;
 }
-.receiver-power {
-  display: inline-flex;
+.signal-indicator {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 10px;
-  min-height: 48px;
-  padding: 8px 14px 8px 8px;
-  border: 1px solid #626858;
-  border-radius: 26px 6px 6px 26px;
-  background: linear-gradient(#41463c, #22261f);
-  box-shadow:
-    inset 0 1px 1px #ffffff24,
-    0 3px 5px #0008;
-  cursor: pointer;
+  padding: 4px 0;
 }
-.receiver-power svg {
-  width: 32px;
-  height: 32px;
-  padding: 6px;
+.signal-light {
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  border: 1px solid #747b68;
-  background: #181d16;
-  stroke: #a4ad91;
-  stroke-width: 2;
-  stroke-linecap: round;
-}
-.receiver-power.is-on svg {
-  stroke: #c8ed92;
-  border-color: #a3bc7a;
+  background: #285471;
   box-shadow:
-    0 0 8px #a3cc7040,
-    inset 0 0 6px #a3cc7020;
+    inset 0 2px 3px #0009,
+    0 1px 1px #ffffff24;
 }
-.receiver-power:active:not(:disabled) {
-  transform: translateY(1px);
-  box-shadow: inset 0 2px 4px #0008;
+.host-connection .signal-indicator span {
+  color: #7596ab;
+  font-size: 9px;
+  letter-spacing: 1.2px;
 }
-.receiver-power:focus-visible {
-  outline: 2px solid #e9b681;
-  outline-offset: 4px;
+.signal-indicator.is-processing .signal-light {
+  background: #79d9ff;
+  box-shadow:
+    0 0 8px #4abfff,
+    0 0 20px #299eff88,
+    inset 0 1px 2px #fff9;
+  animation: signal-glow 1.5s ease-in-out infinite;
 }
-.receiver-power:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.host-connection .signal-indicator.is-processing span {
+  color: #8bdcff;
+  text-shadow: 0 0 8px #49bfffaa;
+  animation: signal-glow 1.5s ease-in-out infinite;
 }
-.host-connection > .power-status {
+@keyframes signal-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-indicator.is-processing .signal-light,
+  .host-connection .signal-indicator.is-processing span {
+    animation: none;
+  }
+}
+.host-connection > .signal-status {
   grid-column: 1 / -1;
   text-align: center;
   line-height: 1.6;

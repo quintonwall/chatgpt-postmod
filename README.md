@@ -31,13 +31,13 @@ Download the icon and upload it in the form. Create and enable the connection. *
 
 Start a new Work chat with **both Postman and Postmod enabled**, then ask:
 
-> Open Postmod with my connected Postman account. Ask which workspace I want, then load only that workspace’s environments and collections. Don’t run tests.
+> Open Postmod with my connected Postman account. Show my workspaces on the dial, then load environments and collections only after I select a workspace. Don’t run tests.
 
-ChatGPT first asks which workspace to use, unless you already specified one. It fetches that workspace's environment and collection names before opening Postmod. Environment and collection dials respond locally, in either order. Changing the **Workspace** dial waits briefly until you stop turning, then fetches only the selected workspace and resets environment, collection selection, and results. ChatGPT may open a refreshed panel for that request. Choose an environment (or **No environment**) before running tests. Coverage remains unknown until collection details have been inspected; ask ChatGPT to inspect coverage when needed.
+Postmod opens immediately after ChatGPT lists your workspaces, with the workspace dial ready and the other dials waiting for a selection. Environment and collection dials respond locally, in either order. Changing the **Workspace** dial waits briefly until you stop turning, then fetches only the selected workspace and resets environment, collection selection, and results. ChatGPT may open a refreshed panel for that request. Choose an environment (or **No environment**) before running tests. Coverage remains unknown until collection details have been inspected; ask ChatGPT to inspect coverage when needed.
 
 ## Using Postmod
 
-- **Power:** press **Power cycle** to fetch fresh environment and collection lists for the selected workspace only. It resets environment, collection selection, and results without running tests.
+- **Signal light:** the blue light and **SIGNAL PROCESSING** label pulse while workspace data is loading, then settle when the result arrives. There is no power or refresh button.
 - **Dials:** drag, use +/−, or use keyboard arrows. Workspace changes fetch scoped inventory after a short pause. Environment and collection choices use the loaded catalog locally.
 - **Meters:** inspect OpenAPI links and script/test presence. Unknown values remain unknown; these aren't code-coverage measurements.
 - **Run tests:** choose your scope, activate the switch, then confirm. Actual requests may change API data. Execution requires a supported Postman tool.

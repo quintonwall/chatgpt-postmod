@@ -56,7 +56,7 @@ export async function requestPostman(
     content: [
       {
         type: "text",
-        text: `Postmod action: ${action}. Use my connected Postman plugin, not a separate API key. Return a complete snapshot through Postmod render_postmod with requestId ${requestId}. Preserve all workspace catalogs, workspace list and selections. Only return real metadata; no secrets or invented coverage/progress. Current selection and request: ${JSON.stringify(selection)}. If unavailable, report the error via render_postmod and explain in chat. For a test request execute once only; refreshing must inspect the existing run, never execute again.`,
+        text: `Postmod action: ${action}. Use my connected Postman plugin, not a separate API key. Update the existing Postmod panel using render_postmod; do not call open_postmod or ask which workspace in chat. Return a complete snapshot with requestId ${requestId}. Preserve all workspace catalogs, workspace list and selections. Only return real metadata; no secrets or invented coverage/progress. Current selection and request: ${JSON.stringify(selection)}. If unavailable, report the error via render_postmod and explain in chat. For a test request execute once only; refreshing must inspect the existing run, never execute again.`,
       },
     ],
   });

@@ -157,17 +157,6 @@ function Panel() {
     setConfirm(false);
     setError("");
   }
-  function refreshWorkspace() {
-    if (!workspace) return;
-    setPendingWorkspace("");
-    setData(undefined);
-    setJob(undefined);
-    setEnv("");
-    setEnvironments([]);
-    setSource("all");
-    setConfirm(false);
-    void ask(workspaceDiscovery, discoverySelection(workspace));
-  }
   function selectEnvironment(value: string) {
     setEnv(value);
     setJob(undefined);
@@ -340,30 +329,33 @@ function Panel() {
       )}
       <div className="host-connection">
         <div className="amplifier-vent" aria-hidden="true" />
-        <button
-          className={`receiver-power ${hasWorkspaces ? "is-on" : ""}`}
-          disabled={busy || running || !workspace || !!pendingWorkspace}
+        <div
+          className={`signal-indicator ${busy || waiting || pendingWorkspace ? "is-processing" : ""}`}
+          role="status"
+          aria-live="polite"
           aria-label={
-            hasWorkspaces
-              ? "Power cycle: refresh this workspace’s environments and collections"
-              : "Power on: fetch this workspace’s environments and collections"
+            busy || waiting || pendingWorkspace
+              ? "Signal processing"
+              : error
+                ? "Signal error"
+                : "Signal ready"
           }
-          title="Fetch fresh environments and collections for the selected workspace"
-          onClick={refreshWorkspace}
         >
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 3v9M7 5.7a8 8 0 1 0 10 0" />
-          </svg>
+          <i className="signal-light" aria-hidden="true" />
           <span>
-            {busy ? "TUNING" : hasWorkspaces ? "POWER CYCLE" : "POWER ON"}
+            {busy || waiting || pendingWorkspace
+              ? "SIGNAL PROCESSING"
+              : error
+                ? "SIGNAL ERROR"
+                : "SIGNAL READY"}
           </span>
-        </button>
+        </div>
         <div className="amplifier-vent" aria-hidden="true" />
-        <span className="power-status">
+        <span className="signal-status">
           {waiting
             ? "Waiting for ChatGPT · check the conversation"
             : hasWorkspaces
-              ? "Power cycle refreshes only the selected workspace"
+              ? "Choose a workspace · its environments and collections load automatically"
               : embedded
                 ? "Uses your Postman connection in ChatGPT"
                 : "Open in ChatGPT with Postman enabled"}
