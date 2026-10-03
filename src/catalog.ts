@@ -15,7 +15,12 @@ export function workspaceData(
   return {
     workspace,
     environments: catalog.environments,
-    collections: catalog.collections.map((collection) => {
+    collections: [
+      ...catalog.collections,
+      ...(summary?.collections.filter(
+        (item) => !catalog.collections.some((known) => known.id === item.id),
+      ) ?? []),
+    ].map((collection) => {
       const details = summary?.collections.find(
         (item) => item.id === collection.id,
       );

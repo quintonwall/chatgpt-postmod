@@ -110,3 +110,40 @@ test("partial coverage cannot hide collections in the workspace inventory", () =
   snapshot.summary!.collections = [];
   assert.equal(workspaceData(snapshot, "a")?.collections.length, 2);
 });
+
+test("a failed inventory fetch does not hide already observed collection details", () => {
+  const snapshot = renderSnapshot({
+    connected: true,
+    canRun: false,
+    workspaceId: "a",
+    environmentId: "none",
+    workspaces: [{ id: "a", name: "A" }],
+    catalogs: [
+      {
+        workspaceId: "a",
+        environments: [],
+        collections: [],
+        error: "Collection inventory request was rate limited (429)",
+      },
+    ],
+    summary: {
+      workspace: { id: "a", name: "A" },
+      environments: [],
+      collections: [
+        {
+          id: "known",
+          name: "Known collection",
+          requests: 1,
+          tests: 1,
+          pre: null,
+          spec: null,
+        },
+      ],
+      updatedAt: "now",
+      warnings: [],
+      mode: "host",
+    },
+  });
+  assert.equal(workspaceData(snapshot, "a")?.collections[0].id, "known");
+  assert.match(workspaceData(snapshot, "a")!.warnings[0], /429/);
+});

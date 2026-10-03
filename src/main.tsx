@@ -307,14 +307,32 @@ function Panel() {
           </p>
         </aside>
       )}
-      {error && (
-        <div role="alert" className="error">
-          {error}
-          <button onClick={() => setError("")} aria-label="Dismiss error">
+      <div
+        className="inventory-status"
+        role={error ? "alert" : "status"}
+        aria-live="polite"
+        tabIndex={0}
+      >
+        <span>
+          {error ||
+            (!workspace
+              ? "Choose a workspace to browse its inventory."
+              : !data
+                ? "Inventory was not supplied for this workspace. Reopen Postmod after the reported retry period."
+                : data.warnings.length
+                  ? data.warnings.join(" · ")
+                  : `${environments.length} environments · ${allCollections.length} collections loaded`)}
+        </span>
+        {error && (
+          <button
+            type="button"
+            onClick={() => setError("")}
+            aria-label="Dismiss error"
+          >
             ×
           </button>
-        </div>
-      )}
+        )}
+      </div>
       <section className="tuner" aria-label="Signal tuner">
         <div
           className={`tuner-lcd ${data ? "locked" : ""}`}
@@ -461,7 +479,7 @@ function Panel() {
                 : allCollections.length
                   ? "Browse loaded collections. No extra loading needed."
                   : data.warnings.length
-                    ? "Collection inventory unavailable. See inventory status below."
+                    ? "Collection inventory unavailable. See inventory status above."
                     : "No collections in the loaded inventory."}
             </p>
           </div>
@@ -470,20 +488,6 @@ function Panel() {
           <span>TURN TO BROWSE · ALL DIALS STAY LOCAL</span>
         </div>
       </section>
-      <div
-        className="inventory-status"
-        role="status"
-        aria-live="polite"
-        tabIndex={0}
-      >
-        {!workspace
-          ? "Choose a workspace to browse its inventory."
-          : !data
-            ? "Inventory was not supplied for this workspace. Ask ChatGPT to reopen Postmod with complete inventory."
-            : data.warnings.length
-              ? data.warnings.join(" · ")
-              : `${environments.length} environments · ${allCollections.length} collections loaded`}
-      </div>
       {data && layout.meters && (
         <section className="amplifier">
           <div className="screw tl" />
