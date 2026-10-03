@@ -1,11 +1,16 @@
-import { workspaceDiscovery, discoverySelection } from "./discovery";
 import { workspaceData } from "./catalog";
 import type { Snapshot } from "../server/host-contract";
 import { Dial } from "./Dial";
 import { Equalizer } from "./Equalizer";
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { invoke, requestPostman, subscribeSnapshot, embedded } from "./bridge";
+import {
+  invoke,
+  requestPostman,
+  subscribeSnapshot,
+  embedded,
+  chooseWorkspace,
+} from "./bridge";
 import type { Summary, Job } from "../server/types";
 import "./style.css";
 const pct = (n: number, d: number) => (d ? Math.round((n / d) * 100) : null);
@@ -64,7 +69,7 @@ function Panel() {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
   const [source, setSource] = useState("all");
-  const [pendingWorkspace, setPendingWorkspace] = useState("");
+  const [choosingWorkspace, setChoosingWorkspace] = useState(false);
   const [layout, setLayout] = useState(() => {
     try {
       return {
@@ -88,7 +93,7 @@ function Panel() {
   useEffect(
     () =>
       subscribeSnapshot((snapshot) => {
-        setPendingWorkspace("");
+        setChoosingWorkspace(false);
         setCap(snapshot);
         setWorkspace(snapshot.workspaceId);
         setEnv(snapshot.environmentId);
@@ -137,25 +142,16 @@ function Panel() {
       setWaiting(false);
     }
   }
-  useEffect(() => {
-    if (!pendingWorkspace) return;
-    const timer = setTimeout(() => {
-      setPendingWorkspace("");
-      void ask(workspaceDiscovery, discoverySelection(pendingWorkspace));
-    }, 900);
-    return () => clearTimeout(timer);
-  }, [pendingWorkspace]);
-  function selectWorkspace(id: string) {
-    if (id === workspace) return;
-    setWorkspace(id);
-    setPendingWorkspace(id);
-    setData(undefined);
-    setJob(undefined);
-    setEnv("");
-    setEnvironments([]);
-    setSource("all");
+  async function powerCycle() {
+    setChoosingWorkspace(true);
     setConfirm(false);
     setError("");
+    try {
+      await chooseWorkspace();
+    } catch (e) {
+      setChoosingWorkspace(false);
+      setError((e as Error).message);
+    }
   }
   function selectEnvironment(value: string) {
     setEnv(value);
@@ -329,12 +325,24 @@ function Panel() {
       )}
       <div className="host-connection">
         <div className="amplifier-vent" aria-hidden="true" />
+        <button
+          className="receiver-power"
+          disabled={busy || running || choosingWorkspace}
+          onClick={() => void powerCycle()}
+          aria-label="Power cycle: choose a workspace in ChatGPT"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3v9M7 5.7a8 8 0 1 0 10 0" />
+          </svg>
+          <span>POWER CYCLE</span>
+        </button>
+        <div className="amplifier-vent" aria-hidden="true" />
         <div
-          className={`signal-indicator ${busy || waiting || pendingWorkspace ? "is-processing" : ""}`}
+          className={`signal-indicator ${busy || waiting ? "is-processing" : ""}`}
           role="status"
           aria-live="polite"
           aria-label={
-            busy || waiting || pendingWorkspace
+            busy || waiting
               ? "Signal processing"
               : error
                 ? "Signal error"
@@ -343,22 +351,23 @@ function Panel() {
         >
           <i className="signal-light" aria-hidden="true" />
           <span>
-            {busy || waiting || pendingWorkspace
+            {busy || waiting
               ? "SIGNAL PROCESSING"
               : error
                 ? "SIGNAL ERROR"
                 : "SIGNAL READY"}
           </span>
         </div>
-        <div className="amplifier-vent" aria-hidden="true" />
         <span className="signal-status">
-          {waiting
-            ? "Waiting for ChatGPT · check the conversation"
-            : hasWorkspaces
-              ? "Choose a workspace · its environments and collections load automatically"
-              : embedded
-                ? "Uses your Postman connection in ChatGPT"
-                : "Open in ChatGPT with Postman enabled"}
+          {choosingWorkspace
+            ? "Choose a workspace in ChatGPT. A new panel opens after its choices load."
+            : waiting
+              ? "Waiting for ChatGPT · check the conversation"
+              : hasWorkspaces
+                ? "Workspace locked · power cycle to choose another in ChatGPT"
+                : embedded
+                  ? "Uses your Postman connection in ChatGPT"
+                  : "Open in ChatGPT with Postman enabled"}
         </span>
       </div>
       <section className="tuner" aria-label="Signal tuner">
@@ -461,12 +470,12 @@ function Panel() {
               index={workspaceIndex}
               count={workspaceOptions.length}
               valueText={workspaceOptions[workspaceIndex].name}
-              disabled={busy || running}
-              onChange={(i) => selectWorkspace(workspaceOptions[i].id)}
+              disabled={true}
+              onChange={() => {}}
             />
             <small>01 / RECEIVE</small>
             <p className="tuner-help">
-              Changing workspace fetches its choices after you stop turning.
+              Workspace locked. Power cycle to choose another.
             </p>
           </div>
           <div className="tuner-knob">
@@ -476,7 +485,9 @@ function Panel() {
               index={environmentIndex}
               count={environmentOptions.length}
               valueText={environmentOptions[environmentIndex].name}
-              disabled={busy || running || !workspace || !data}
+              disabled={
+                busy || running || choosingWorkspace || !workspace || !data
+              }
               onChange={(i) => changeEnvironment(environmentOptions[i].id)}
             />
             <small>02 / TUNE</small>
@@ -493,7 +504,7 @@ function Panel() {
               index={sourceIndex}
               count={sourceOptions.length}
               valueText={data ? sourceName : "Awaiting signal"}
-              disabled={busy || running || !data}
+              disabled={busy || running || choosingWorkspace || !data}
               onChange={(i) => changeSource(sourceOptions[i])}
             />
             <small>03 / INPUT</small>
@@ -509,7 +520,9 @@ function Panel() {
           </div>
         </div>
         <div className="tuner-bottom">
-          <span>WORKSPACE FETCHES · ENVIRONMENT & COLLECTIONS STAY LOCAL</span>
+          <span>
+            WORKSPACE LOCKED · TURN ENVIRONMENT & COLLECTIONS TO SELECT
+          </span>
         </div>
       </section>
       {data && layout.meters && (
@@ -656,6 +669,7 @@ function Panel() {
             aria-pressed={!!switchOn}
             disabled={
               busy ||
+              choosingWorkspace ||
               running ||
               !data ||
               !env ||

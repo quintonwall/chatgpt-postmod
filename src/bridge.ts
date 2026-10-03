@@ -75,3 +75,22 @@ export async function shareContext(context: Record<string, unknown>) {
   if (extensions.modelContext) await extensions.modelContext.update(params);
   else await app.updateModelContext(params);
 }
+
+export async function chooseWorkspace() {
+  if (!embedded)
+    throw new Error("Open Postmod in ChatGPT with Postman enabled.");
+  await ready;
+  const response = await app.sendMessage({
+    role: "user",
+    content: [
+      {
+        type: "text",
+        text: "Power cycle Postmod: list my accessible Postman workspaces in chat and let me select one (use a selectable list if supported, otherwise a numbered list). Wait for my choice; do not open or render Postmod yet. After I choose, fetch only that workspace's environment and collection names/IDs, then call open_postmod with workspaceId selected and its catalog preloaded. Reset environment, source, summary and run. Never scan all workspace inventories or run tests.",
+      },
+    ],
+  });
+  if (response.isError)
+    throw new Error(
+      "ChatGPT did not accept the workspace selection request. Ask to choose a Postmod workspace in chat.",
+    );
+}

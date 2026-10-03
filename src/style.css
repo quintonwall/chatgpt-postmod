@@ -2198,3 +2198,33 @@ footer a:focus-visible {
   outline: 2px solid #e9b681;
   outline-offset: 3px;
 }
+
+.receiver-power {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 0;
+  padding: 8px;
+  cursor: pointer;
+}
+.receiver-power svg {
+  width: 30px;
+  height: 30px;
+  stroke: #8bdcff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 5px #49bfff88);
+}
+.receiver-power:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.receiver-power:focus-visible {
+  outline: 2px solid #8bdcff;
+  outline-offset: 3px;
+}
+.host-connection .signal-indicator {
+  grid-column: 1 / -1;
+}

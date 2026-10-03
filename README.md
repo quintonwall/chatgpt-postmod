@@ -31,14 +31,15 @@ Download the icon and upload it in the form. Create and enable the connection. *
 
 Start a new Work chat with **both Postman and Postmod enabled**, then ask:
 
-> Open Postmod with my connected Postman account. Show my workspaces on the dial, then load environments and collections only after I select a workspace. Don’t run tests.
+> Open Postmod with my connected Postman account. Show me workspace choices in chat, then open Postmod after loading only the workspace I select. Don’t run tests.
 
-Postmod opens immediately after ChatGPT lists your workspaces, with the workspace dial ready and the other dials waiting for a selection. Environment and collection dials respond locally, in either order. Changing the **Workspace** dial waits briefly until you stop turning, then fetches only the selected workspace and resets environment, collection selection, and results. ChatGPT may open a refreshed panel for that request. Choose an environment (or **No environment**) before running tests. Coverage remains unknown until collection details have been inspected; ask ChatGPT to inspect coverage when needed.
+ChatGPT presents workspace choices first. After you choose, it loads only that workspace's environments and collections, then opens Postmod with the workspace dial set and locked. Environment and collection dials work locally. Press **Power cycle** to return to chat, select another workspace, and open a fresh panel. Detailed coverage remains unknown until inspected; choose an environment (or **No environment**) before running tests.
+
 
 ## Using Postmod
 
-- **Signal light:** the blue light and **SIGNAL PROCESSING** label pulse while workspace data is loading, then settle when the result arrives. There is no power or refresh button.
-- **Dials:** drag, use +/−, or use keyboard arrows. Workspace changes fetch scoped inventory after a short pause. Environment and collection choices use the loaded catalog locally.
+- **Signal light:** the blue light and **SIGNAL PROCESSING** label pulse while workspace data is loading, then settle when the result arrives. Power cycle returns to the workspace chooser in chat.
+- **Dials:** drag, use +/−, or use keyboard arrows. The workspace dial is locked. Environment and collection choices use the loaded catalog locally.
 - **Meters:** inspect OpenAPI links and script/test presence. Unknown values remain unknown; these aren't code-coverage measurements.
 - **Run tests:** choose your scope, activate the switch, then confirm. Actual requests may change API data. Execution requires a supported Postman tool.
 - **Equalizer:** shows real endpoint results when provided. A final-summary-only response cannot supply live animation.

@@ -2,9 +2,10 @@
 
 Postmod exposes only `open_postmod({snapshot?})` and `render_postmod({snapshot})`. See `server/host-contract.ts` for the validated schema. Both are read-only, stateless render operations returning structured content with `ui://postmod/panel.html`.
 
-ChatGPT performs upstream calls using its separately connected Postman plugin. Initially list workspace names/IDs and immediately open the panel with no workspace selected. Do not ask a workspace question in chat. Wait for selection via the dial. Fetch only that workspace's inventory into `catalogs` (workspaceId, environments, collections); set snapshot.workspaceId and leave environmentId empty. Never scan all workspaces. Names and IDs suffice; unknown coverage defaults to null.
+ChatGPT lists workspace names/IDs and presents choices in chat before opening a panel. After the user selects, fetch only that workspace's inventory into `catalogs` and call open_postmod with workspaceId selected. Opening without a selected workspace and matching catalog is rejected. Never scan all workspaces.
 
-Workspace changes are debounced for 900 ms and send a scoped `ui/message`. The processing light pulses during the request. Workspace changes reset environment, source, summary, and run. Environment and collection dial changes remain local. No requests go directly to Postman. Preserve the workspace list, requestId, and catalogs in complete snapshots. Stop on rate limits, report retry guidance, and never automatically retry. Catalog errors distinguish unavailable data from empty inventory. Never include credentials or environment values. A complete snapshot lets a new iframe restore selection.
+The workspace dial is locked. Environment and collection dials are local. Power cycle sends a chat message requesting workspace choices, without waiting for a snapshot or starting a data timeout. After a new user choice, open a fresh panel with its catalog and reset selections/results. Existing-workspace results use render_postmod. Preserve request IDs on result updates. Stop on rate limits and never retry automatically. No credentials or environment values enter snapshots.
+
 
 Unknown metrics must be null. Summary requires a matching workspace and explicit environment (use `none` for no environment). Runs must match selection. Rendering does not verify the provenance of supplied data and never grants Postman access. No snapshots are persisted server-side.
 

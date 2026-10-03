@@ -23,12 +23,23 @@ const schemas = {
 type Tool = keyof typeof schemas;
 async function dispatch(name: Tool, args: unknown) {
   const a = schemas[name].parse(args);
+  if (
+    name === "open_postmod" &&
+    (!a.snapshot?.workspaceId ||
+      !a.snapshot.catalogs.some(
+        (catalog) => catalog.workspaceId === a.snapshot!.workspaceId,
+      ))
+  ) {
+    throw new Error(
+      "Before opening Postmod, present workspace choices in chat and wait for the user's selection. Fetch only that workspace's environments and collections, then provide workspaceId and its catalog.",
+    );
+  }
   return renderSnapshot(a.snapshot ?? emptySnapshot);
 }
 const uri = "ui://postmod/panel.html";
 const descriptions: Record<Tool, string> = {
   open_postmod:
-    "Open Postmod. List workspace names/IDs and immediately open the panel with workspaceId empty. Do not ask a workspace question in chat or fetch inventory before opening. The user selects a workspace using the dial. Never scan all workspaces. Never include credentials or environment values.",
+    "Open Postmod. Present workspace names/IDs as choices in chat and wait for the user to select one. Fetch only that workspace’s environment and collection lists, then open with workspaceId selected and its catalog loaded. The workspace dial is locked. Never scan all workspaces. Never include credentials or environment values.",
   render_postmod:
     "Render a complete Postmod snapshot after using connected Postman tools to satisfy the user's panel request. This tool only renders supplied data.",
 };
