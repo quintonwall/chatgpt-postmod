@@ -98,6 +98,13 @@ test("MCP advertises extension entrypoints and serves a self-contained widget", 
       arguments: {
         snapshot: {
           workspaces: [{ id: "test-workspace", name: "Fixture" }],
+          catalogs: [
+            {
+              workspaceId: "test-workspace",
+              environments: [],
+              collections: [],
+            },
+          ],
           connected: true,
           canRun: false,
         },
@@ -107,6 +114,18 @@ test("MCP advertises extension entrypoints and serves a self-contained widget", 
       (rendered.structuredContent as any).workspaces[0].id,
       "test-workspace",
     );
+    const incomplete = await client.callTool({
+      name: "open_postmod",
+      arguments: {
+        snapshot: {
+          workspaces: [{ id: "test-workspace", name: "Fixture" }],
+          connected: true,
+          canRun: false,
+        },
+      },
+    });
+    assert.equal(incomplete.isError, true);
+    assert.match(JSON.stringify(incomplete.content), /Missing inventory/);
     const fresh = await client.callTool({
       name: "open_postmod",
       arguments: {},

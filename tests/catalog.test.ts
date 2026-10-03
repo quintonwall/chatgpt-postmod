@@ -35,18 +35,29 @@ test("preloaded choices follow workspace selection without an environment or sum
   assert.equal(workspaceData(snapshot, ""), undefined);
 });
 
-test("legacy snapshots and inaccessible catalogs do not invent choices", () => {
-  const snapshot = renderSnapshot({
+test("missing, mismatched, and duplicate inventories are rejected before rendering", () => {
+  const base = {
     connected: true,
     canRun: false,
     workspaces: [{ id: "a", name: "A" }],
-  });
-  assert.equal(workspaceData(snapshot, "a"), undefined);
-  snapshot.catalogs.push({
-    workspaceId: "a",
-    environments: [],
-    collections: [],
-    error: "Permission denied",
+  };
+  assert.throws(() => renderSnapshot(base), /Missing inventory/);
+  assert.throws(
+    () =>
+      renderSnapshot({
+        ...base,
+        catalogs: [{ workspaceId: "other", environments: [], collections: [] }],
+      }),
+    /Missing inventory/,
+  );
+  const catalog = { workspaceId: "a", environments: [], collections: [] };
+  assert.throws(
+    () => renderSnapshot({ ...base, catalogs: [catalog, catalog] }),
+    /Duplicate/,
+  );
+  const snapshot = renderSnapshot({
+    ...base,
+    catalogs: [{ ...catalog, error: "Permission denied" }],
   });
   assert.deepEqual(workspaceData(snapshot, "a")?.warnings, [
     "Permission denied",

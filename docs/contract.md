@@ -10,3 +10,5 @@ Unknown metrics must be null. Summary requires a matching workspace and explicit
 The panel applies tool-result snapshots in place without navigating or remounting. Dial replies must use render_postmod rather than open_postmod. The host may still not deliver a render result to the same iframe. Real-account testing is required; a 90-second waiting message does not mean a tool failed, and execution requests must not be automatically retried.
 
 Workspace choices exclude organization-wide visibility alone. Discovery first resolves the current user and lists workspaces they created; this is labeled explicitly and is not a complete membership list. Other workspaces are included only with verified membership. If a joined workspace is missing, provide its name or ID for a targeted membership check. Discovery never falls back to an organization-wide list or bulk role scan.
+
+Snapshot validation rejects missing, duplicate, or mismatched workspace catalogs. Every listed workspace requires inventory or an explicit fetch error before rendering. Workspace selection never initiates a background request, so the UI reports missing inventory rather than waiting indefinitely.

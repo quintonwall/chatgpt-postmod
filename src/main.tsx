@@ -145,6 +145,15 @@ function Panel() {
   }
   function selectWorkspace(id: string) {
     const next = workspaceData(cap, id);
+    const catalogError = cap?.catalogs.find(
+      (catalog) => catalog.workspaceId === id,
+    )?.error;
+    setError(
+      catalogError ??
+        (id && !next
+          ? "This panel did not receive inventory for the selected workspace. Power cycle to fetch it again."
+          : ""),
+    );
     setWorkspace(id);
     setData(next);
     setEnvironments(next?.environments ?? []);
@@ -451,13 +460,15 @@ function Panel() {
               ? "Waiting for ChatGPT’s Postman result…"
               : !workspace
                 ? "Turn the workspace dial to begin."
-                : !env
-                  ? "Choose a collection and an environment, or No environment."
-                  : data
-                    ? source === "all"
-                      ? `${allCollections.length} collections · workspace mix`
-                      : "Single collection · focused signal"
-                    : "Fetching choices for this workspace…"}
+                : !data
+                  ? "Workspace inventory is missing. Power cycle to fetch it again."
+                  : !env
+                    ? "Choose a collection and an environment, or No environment."
+                    : data
+                      ? source === "all"
+                        ? `${allCollections.length} collections · workspace mix`
+                        : "Single collection · focused signal"
+                      : "Workspace inventory unavailable."}
           </div>
         </div>
         <div className="tuner-controls">
@@ -507,7 +518,7 @@ function Panel() {
             <p className="tuner-help" role="status">
               {!data
                 ? workspace
-                  ? "Waiting for this workspace’s collection list."
+                  ? "Inventory was not supplied. Power cycle to fetch it again."
                   : "Choose a workspace to browse its collections."
                 : allCollections.length
                   ? "Browse loaded collections. No extra loading needed."

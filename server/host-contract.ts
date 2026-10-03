@@ -95,6 +95,31 @@ export const snapshotSchema = z
     error: z.string().optional(),
   })
   .superRefine((s, ctx) => {
+    const catalogIds = new Set(
+      s.catalogs.map((catalog) => catalog.workspaceId),
+    );
+    if (catalogIds.size !== s.catalogs.length)
+      ctx.addIssue({
+        code: "custom",
+        message: "Duplicate workspace catalogs are not allowed.",
+      });
+    for (const workspace of s.workspaces) {
+      if (!catalogIds.has(workspace.id))
+        ctx.addIssue({
+          code: "custom",
+          path: ["catalogs"],
+          message: `Missing inventory for workspace ${workspace.id}. Before rendering, fetch its environment and collection references into catalogs with this exact workspaceId. If the read failed or was rate limited, include an explicit catalog error; never leave inventory silently missing. Do not ask the user to select a workspace first.`,
+        });
+    }
+    for (const catalog of s.catalogs) {
+      if (
+        !s.workspaces.some((workspace) => workspace.id === catalog.workspaceId)
+      )
+        ctx.addIssue({
+          code: "custom",
+          message: `Catalog ${catalog.workspaceId} does not match a listed workspace ID.`,
+        });
+    }
     if (
       s.summary &&
       (!s.workspaceId ||
