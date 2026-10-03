@@ -13,7 +13,9 @@
     "category": "Productivity",
     "capabilities": [],
     "defaultPrompt": "Open Postmod and summarize my Postman workspace.",
-    "brandColor": "#E89553"
+    "brandColor": "#E89553",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
   },
   "mcpServers": "./.mcp.json",
   "skills": "./skills/"

@@ -101,11 +101,14 @@ function mcp() {
 }
 const app = express();
 app.use(express.json({ limit: "128kb" }));
-// No account state or credentials: render snapshots only. Reject foreign browser origins.
+// Stateless renderer: allow the known ChatGPT host on MCP routes, not arbitrary origins.
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  const isMcp = ["/mcp", "/api/mcp"].includes(req.path);
+  const chatgptOrigin = isMcp && origin === "https://chatgpt.com";
   if (
     origin &&
+    !chatgptOrigin &&
     ![`http://${req.headers.host}`, `https://${req.headers.host}`].includes(
       origin,
     )
@@ -119,6 +122,23 @@ app.use((req, res, next) => {
     !["127.0.0.1", "localhost", "::1"].includes(host)
   ) {
     res.status(403).json({ error: "Host denied" });
+    return;
+  }
+  if (isMcp && origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "POST, GET, DELETE, OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Accept, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
+    );
+    res.setHeader(
+      "Access-Control-Expose-Headers",
+      "MCP-Session-Id, MCP-Protocol-Version",
+    );
+  }
+  if (isMcp && req.method === "OPTIONS") {
+    res.sendStatus(204);
     return;
   }
   next();
@@ -149,6 +169,20 @@ app.post(["/mcp", "/api/mcp"], async (req, res) => {
   });
   await server.connect(transport);
   await transport.handleRequest(req, res, req.body);
+});
+// Stateless transport has no standalone SSE stream or session to delete.
+app.all(["/mcp", "/api/mcp"], (_req, res) => {
+  res.setHeader("Allow", "POST, OPTIONS");
+  res
+    .status(405)
+    .json({
+      jsonrpc: "2.0",
+      id: null,
+      error: {
+        code: -32000,
+        message: "Method not allowed; use Streamable HTTP POST.",
+      },
+    });
 });
 app.get("/health", (_req, res) => res.json({ ok: true }));
 app.use(express.static("dist"));

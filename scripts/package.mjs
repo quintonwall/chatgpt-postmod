@@ -29,6 +29,7 @@ const files = [
   "vite.config.ts",
   "tsconfig.json",
   "src",
+  "public",
   "server",
   "scripts",
   "tests",

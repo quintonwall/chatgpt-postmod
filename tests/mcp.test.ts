@@ -23,6 +23,49 @@ test("MCP advertises extension entrypoints and serves a self-contained widget", 
     new StreamableHTTPClientTransport(new URL("http://127.0.0.1:4311/mcp")),
   );
   try {
+    const endpoint = "http://127.0.0.1:4311/api/mcp";
+    const preflight = await fetch(endpoint, {
+      method: "OPTIONS",
+      headers: { Origin: "https://chatgpt.com" },
+    });
+    assert.equal(preflight.status, 204);
+    assert.equal(
+      preflight.headers.get("access-control-allow-origin"),
+      "https://chatgpt.com",
+    );
+    const init = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Origin: "https://chatgpt.com",
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: { name: "test", version: "1" },
+        },
+      }),
+    });
+    assert.equal(init.status, 200);
+    assert.equal(
+      (await fetch(endpoint, { headers: { Origin: "https://chatgpt.com" } }))
+        .status,
+      405,
+    );
+    assert.equal(
+      (
+        await fetch(endpoint, {
+          method: "OPTIONS",
+          headers: { Origin: "https://untrusted.example" },
+        })
+      ).status,
+      403,
+    );
     const { tools } = await client.listTools();
     const open = tools.find((t) => t.name === "open_postmod")!;
     assert.deepEqual((open._meta?.["openai/ui"] as any).entrypoints, [
