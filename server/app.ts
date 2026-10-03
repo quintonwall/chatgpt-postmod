@@ -10,6 +10,7 @@ import {
 } from "@modelcontextprotocol/ext-apps/server";
 import { OpenAIExtensions } from "@openai/mcp-extensions/server";
 import { z } from "zod";
+import { inventoryInstructions } from "./workspace-discovery.ts";
 import {
   emptySnapshot,
   renderSnapshot,
@@ -23,12 +24,18 @@ const schemas = {
 type Tool = keyof typeof schemas;
 async function dispatch(name: Tool, args: unknown) {
   const a = schemas[name].parse(args);
+  if (name === "open_postmod" && !a.snapshot) {
+    throw new Error(
+      "Inventory is required. Continue automatically with the connected Postman tools; do not ask the user to select a workspace or test. " +
+        inventoryInstructions,
+    );
+  }
   return renderSnapshot(a.snapshot ?? emptySnapshot);
 }
 const uri = "ui://postmod/panel.html";
 const descriptions: Record<Tool, string> = {
   open_postmod:
-    "Open Postmod after preloading environment and collection names/IDs for the current user's createdBy-filtered workspaces and other verified memberships only. Follow server discovery instructions. Do not ask which workspace; all dials use preloaded catalogs locally. Never expand to all organization workspaces or fetch full collection bodies for inventory.",
+    "Open the Postmod browser automatically; no workspace or test choice is needed. FIRST call Postman getAuthenticatedUser, THEN getWorkspaces(createdBy=user.id), THEN fetch environment and collection names/IDs for EACH returned workspace. Finally call this tool with workspaces and matching catalogs. Never stop at connection success or ask what to test. All three dials select locally. Fetch no full collection bodies or environment values; report rate limits explicitly.",
   render_postmod:
     "Render a complete Postmod snapshot after using connected Postman tools to satisfy the user's panel request. This tool only renders supplied data.",
 };
