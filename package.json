@@ -1,0 +1,44 @@
+{
+  "name": "postmod",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch server/index.ts",
+    "build": "vite build && node scripts/inline.mjs && tsc --noEmit",
+    "start": "tsx server/index.ts",
+    "test": "tsx --test tests/*.test.ts",
+    "package": "npm run build && npm test && node scripts/package.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.7.5",
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@openai/mcp-extensions": "^0.1.0",
+    "acorn": "^8.18.0",
+    "acorn-walk": "^8.3.5",
+    "dotenv": "^18.0.5",
+    "express": "^5.2.1",
+    "newman": "^6.2.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/newman": "^5.3.6",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "prettier": "^3.9.9",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2"
+  },
+  "overrides": {
+    "handlebars": "^4.7.9",
+    "lodash": "^4.18.1",
+    "flatted": "^3.4.4",
+    "qs": "^6.15.4",
+    "underscore": "^1.13.8"
+  }
+}

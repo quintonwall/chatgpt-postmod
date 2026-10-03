@@ -1,0 +1,19 @@
+{
+  "name": "postmod",
+  "version": "0.1.0",
+  "description": "A compact Postman workspace control panel with coverage meters and test runs.",
+  "author": {
+    "name": "Quinton Wall"
+  },
+  "interface": {
+    "displayName": "Postmod",
+    "shortDescription": "Your Postman workspace, in tune.",
+    "longDescription": "Inspect workspace collections, OpenAPI links, script and test presence, and execute collections from an amplifier-inspired control panel.",
+    "developerName": "Quinton Wall",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Open Postmod and summarize my Postman workspace.",
+    "brandColor": "#E89553"
+  },
+  "mcpServers": "./.mcp.json"
+}
