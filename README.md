@@ -40,7 +40,7 @@ ChatGPT preloads environment and collection names for your created workspaces , 
 - **Dials:** drag, use +/−, or use keyboard arrows. Environment and collection choices use the loaded catalog locally.
 - **Meters:** inspect OpenAPI links and script/test presence. Unknown values remain unknown; these aren't code-coverage measurements.
 - **Run tests:** choose your scope, activate the switch, then confirm. Actual requests may change API data. Execution requires a supported Postman tool.
-- **Equalizer:** shows real endpoint results when provided. A final-summary-only response cannot supply live animation.
+- **Equalizer:** displays actual endpoint results after a test run, not saved test scripts. Initial inventory loads names and IDs only. If the execution tool returns only a collection summary, endpoint bars remain unavailable; that does not mean there are no tests.
 - **Gear:** show or hide panel sections.
 
 Postman sign-in stays in ChatGPT. Postmod doesn't receive your credentials. Sanitized metadata and results pass through its rendering server and conversation.

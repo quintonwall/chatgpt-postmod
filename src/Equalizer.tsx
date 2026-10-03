@@ -4,6 +4,7 @@ import type { Collection, Job, Endpoint } from "../server/types";
 const pageSize = 24;
 export function Equalizer({
   job,
+  collections,
 }: {
   job?: Job;
   collections: Collection[];
@@ -39,7 +40,7 @@ export function Equalizer({
           <i className={active >= 0 ? "live-dot" : ""} />
           {job?.state === "running"
             ? "ENDPOINTS / LIVE"
-            : "ENDPOINT TEST SIGNAL"}
+            : "ENDPOINT TEST RESULTS"}
         </span>
         <span>
           {active >= 0
@@ -48,7 +49,7 @@ export function Equalizer({
               ? "Preparing endpoints…"
               : job
                 ? "Run complete"
-                : "Awaiting a run"}
+                : "Not run yet"}
         </span>
       </div>
       <div className="eq-display endpoint-display">
@@ -90,7 +91,11 @@ export function Equalizer({
           })}
           {!visible.length && (
             <div className="eq-standby">
-              Each bar will represent an endpoint’s actual test results.
+              {job
+                ? job.state === "running"
+                  ? "The run is in progress. No endpoint results have been returned yet."
+                  : "This run returned no endpoint-level results. See the collection summary below; this does not mean the collections have no tests."
+                : `${collections.length} collection${collections.length === 1 ? "" : "s"} selected. Saved test scripts are not displayed here. Choose an environment (or No environment), then Run tests to see results. Startup loads collection names, not test scripts.`}
             </div>
           )}
         </div>
@@ -98,7 +103,7 @@ export function Equalizer({
       <div className="eq-caption">
         <span>
           Bar height = assertion pass rate · green: all pass · red: failures ·
-          gray: no tests yet
+          gray: no assertion results
         </span>
         <div className="eq-pages">
           <button
@@ -114,7 +119,7 @@ export function Equalizer({
           <span>
             {endpoints.length
               ? `${current * pageSize + 1}–${Math.min((current + 1) * pageSize, endpoints.length)} / ${endpoints.length}`
-              : "0 endpoints"}
+              : "No endpoint results"}
           </span>
           <button
             aria-label="Next endpoints"
