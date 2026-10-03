@@ -31,15 +31,14 @@ Download the icon and upload it in the form. Create and enable the connection. *
 
 Start a new Work chat with **both Postman and Postmod enabled**, then ask:
 
-> Open Postmod with my connected Postman account. Show me workspace choices in chat, then open Postmod after loading only the workspace I select. Don’t run tests.
+> Open Postmod with my connected Postman account. Preload environment and collection names for my workspaces, then open Postmod without asking me to choose first. Don’t run tests.
 
-ChatGPT presents workspace choices first. After you choose, it loads only that workspace's environments and collections, then opens Postmod with the workspace dial set and locked. Environment and collection dials work locally. Press **Power cycle** to return to chat, select another workspace, and open a fresh panel. Detailed coverage remains unknown until inspected; choose an environment (or **No environment**) before running tests.
-
+ChatGPT preloads environment and collection names for your created workspaces and other verified memberships, then opens Postmod without a workspace question. All three dials select locally. **Power cycle** refreshes this same narrowed inventory. Full collection bodies are not fetched for discovery, so coverage can remain unknown. If rate limited, discovery stops and reports unfinished workspace inventories instead of retrying or broadening the scan.
 
 ## Using Postmod
 
-- **Signal light:** the blue light and **SIGNAL PROCESSING** label pulse while workspace data is loading, then settle when the result arrives. Power cycle returns to the workspace chooser in chat.
-- **Dials:** drag, use +/−, or use keyboard arrows. The workspace dial is locked. Environment and collection choices use the loaded catalog locally.
+- **Signal light:** the blue light and **SIGNAL PROCESSING** label pulse while workspace data is loading, then settle when the result arrives. Power cycle refreshes the narrowed inventory.
+- **Dials:** drag, use +/−, or use keyboard arrows. All three dials select locally. Environment and collection choices use the loaded catalog locally.
 - **Meters:** inspect OpenAPI links and script/test presence. Unknown values remain unknown; these aren't code-coverage measurements.
 - **Run tests:** choose your scope, activate the switch, then confirm. Actual requests may change API data. Execution requires a supported Postman tool.
 - **Equalizer:** shows real endpoint results when provided. A final-summary-only response cannot supply live animation.
@@ -56,3 +55,5 @@ Host behavior still needs verification in your account; same-panel updates and l
 Hosting your own copy? See [INSTALL.md](INSTALL.md) for Vercel deployment and verification.
 
 By [@quintonwall](https://quintonwall.com).
+
+Workspace choices exclude organization-wide visibility alone. Discovery first resolves the current user and lists workspaces they created; this is labeled explicitly and is not a complete membership list. Other workspaces are included only with verified membership. If a joined workspace is missing, provide its name or ID for a targeted membership check. Discovery never falls back to an organization-wide list or bulk role scan.

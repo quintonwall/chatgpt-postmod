@@ -77,7 +77,7 @@ test("MCP advertises extension entrypoints and serves a self-contained widget", 
       { type: "thread" },
     ]);
     const r = await client.callTool({ name: "open_postmod", arguments: {} });
-    assert.equal(r.isError, true);
+    assert.equal(r.isError, undefined);
     assert.equal(
       (await fetch("http://127.0.0.1:4311/demo-api/test/1")).status,
       404,
@@ -111,7 +111,7 @@ test("MCP advertises extension entrypoints and serves a self-contained widget", 
       name: "open_postmod",
       arguments: {},
     });
-    assert.equal(fresh.isError, true);
+    assert.equal(fresh.isError, undefined);
     const opened = await client.callTool({
       name: "open_postmod",
       arguments: {
