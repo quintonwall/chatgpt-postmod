@@ -256,12 +256,6 @@ function Panel() {
                 strokeWidth="3.5"
                 strokeLinecap="round"
               />
-              <path
-                d="M6 34h28"
-                stroke="currentColor"
-                strokeOpacity=".25"
-                strokeWidth="1"
-              />
             </svg>
           </div>
           <h1>

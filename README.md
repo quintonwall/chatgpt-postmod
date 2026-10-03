@@ -34,7 +34,7 @@ Use either the official plugin or this manually registered connection; you do no
 This project is currently installed as a personal developer-mode plugin; it is not a published directory listing.
 
 1. Enable **Settings → Security and login → Developer mode**, if permitted by your workspace.
-2. Open **Plugins → +** and name the connection **Postmod**.
+2. Open **Plugins → +** and name the connection **Postmod**. For the icon, download [Postmod’s 512×512 PNG icon](https://github.com/quintonwall/chatgpt-postmod/blob/main/plugins/postmod/assets/icon.png) using GitHub’s **Download raw file** button, then upload it in the plugin form.
 3. Enter the Postmod MCP URL supplied by your administrator, for example:
 
    ```text
