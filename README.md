@@ -31,14 +31,14 @@ Download the icon and upload it in the form. Create and enable the connection. *
 
 Start a new Work chat with **both Postman and Postmod enabled**, then ask:
 
-> Use Postman's getWorkspaces, then open Postmod with my workspaces.
+> Open Postmod with my connected Postman account. Ask which workspace I want, then load only that workspace’s environments and collections. Don’t run tests.
 
-Postmod preloads each workspace's environment and collection names when it opens. Turn the **Workspace** dial to immediately populate the **Environment** and **Collections** dials. Browse either in any order; choose an environment (or **No environment**) before running tests. All dial movements stay local, with no load buttons or ChatGPT requests. Initial discovery may take longer for accounts with many workspaces. Coverage remains unknown until collection details have been inspected; ask ChatGPT to inspect coverage when needed.
+ChatGPT first asks which workspace to use, unless you already specified one. It fetches that workspace's environment and collection names before opening Postmod. Environment and collection dials respond locally, in either order. Changing the **Workspace** dial waits briefly until you stop turning, then fetches only the selected workspace and resets environment, collection selection, and results. ChatGPT may open a refreshed panel for that request. Choose an environment (or **No environment**) before running tests. Coverage remains unknown until collection details have been inspected; ask ChatGPT to inspect coverage when needed.
 
 ## Using Postmod
 
-- **Power:** press **Power on** to discover your Postman workspaces, or **Power cycle** to fetch fresh workspace, environment, and collection lists. This resets the dial selections and does not run tests.
-- **Dials:** drag, use +/−, or use keyboard arrows. Environment and collection choices update immediately from the selected workspace's preloaded catalog.
+- **Power:** press **Power cycle** to fetch fresh environment and collection lists for the selected workspace only. It resets environment, collection selection, and results without running tests.
+- **Dials:** drag, use +/−, or use keyboard arrows. Workspace changes fetch scoped inventory after a short pause. Environment and collection choices use the loaded catalog locally.
 - **Meters:** inspect OpenAPI links and script/test presence. Unknown values remain unknown; these aren't code-coverage measurements.
 - **Run tests:** choose your scope, activate the switch, then confirm. Actual requests may change API data. Execution requires a supported Postman tool.
 - **Equalizer:** shows real endpoint results when provided. A final-summary-only response cannot supply live animation.

@@ -28,7 +28,7 @@ async function dispatch(name: Tool, args: unknown) {
 const uri = "ui://postmod/panel.html";
 const descriptions: Record<Tool, string> = {
   open_postmod:
-    "Open Postmod. First use connected Postman tools to discover workspaces and preload each workspace’s environment and collection IDs/names in snapshot.catalogs. Dials use these choices locally. Never include credentials or environment values.",
+    "Open Postmod. List workspace names/IDs, then ask the user which workspace to use if not already selected. Fetch only that workspace’s environment and collection IDs/names into snapshot.catalogs and set workspaceId before opening. Never scan all workspaces. Never include credentials or environment values.",
   render_postmod:
     "Render a complete Postmod snapshot after using connected Postman tools to satisfy the user's panel request. This tool only renders supplied data.",
 };

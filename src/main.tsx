@@ -1,3 +1,4 @@
+import { workspaceDiscovery, discoverySelection } from "./discovery";
 import { workspaceData } from "./catalog";
 import type { Snapshot } from "../server/host-contract";
 import { Dial } from "./Dial";
@@ -63,6 +64,7 @@ function Panel() {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
   const [source, setSource] = useState("all");
+  const [pendingWorkspace, setPendingWorkspace] = useState("");
   const [layout, setLayout] = useState(() => {
     try {
       return {
@@ -86,6 +88,7 @@ function Panel() {
   useEffect(
     () =>
       subscribeSnapshot((snapshot) => {
+        setPendingWorkspace("");
         setCap(snapshot);
         setWorkspace(snapshot.workspaceId);
         setEnv(snapshot.environmentId);
@@ -134,15 +137,36 @@ function Panel() {
       setWaiting(false);
     }
   }
+  useEffect(() => {
+    if (!pendingWorkspace) return;
+    const timer = setTimeout(() => {
+      setPendingWorkspace("");
+      void ask(workspaceDiscovery, discoverySelection(pendingWorkspace));
+    }, 900);
+    return () => clearTimeout(timer);
+  }, [pendingWorkspace]);
   function selectWorkspace(id: string) {
+    if (id === workspace) return;
     setWorkspace(id);
-    const selectedData = workspaceData(cap, id);
-    setData(selectedData);
+    setPendingWorkspace(id);
+    setData(undefined);
     setJob(undefined);
     setEnv("");
-    setEnvironments(selectedData?.environments ?? []);
+    setEnvironments([]);
     setSource("all");
     setConfirm(false);
+    setError("");
+  }
+  function refreshWorkspace() {
+    if (!workspace) return;
+    setPendingWorkspace("");
+    setData(undefined);
+    setJob(undefined);
+    setEnv("");
+    setEnvironments([]);
+    setSource("all");
+    setConfirm(false);
+    void ask(workspaceDiscovery, discoverySelection(workspace));
   }
   function selectEnvironment(value: string) {
     setEnv(value);
@@ -318,19 +342,14 @@ function Panel() {
         <div className="amplifier-vent" aria-hidden="true" />
         <button
           className={`receiver-power ${hasWorkspaces ? "is-on" : ""}`}
-          disabled={busy || running}
+          disabled={busy || running || !workspace || !!pendingWorkspace}
           aria-label={
             hasWorkspaces
-              ? "Power cycle: fetch fresh Postman workspace, environment, and collection lists"
-              : "Power on: fetch Postman workspace, environment, and collection lists"
+              ? "Power cycle: refresh this workspace’s environments and collections"
+              : "Power on: fetch this workspace’s environments and collections"
           }
-          title="Fetch fresh workspace, environment, and collection lists from Postman"
-          onClick={() =>
-            void ask(
-              "Perform a full fresh discovery: call getWorkspaces again, then fetch fresh environment and collection IDs/names for every accessible workspace into catalogs using available workspace detail or listing tools. Do not reuse previous catalogs or coverage summaries. Paginate as needed. Never read environment values or fetch full collections just for the dials. Include catalog errors for inaccessible workspaces. Set canRun only if a connected Postman execution tool is available. Leave workspace and environment unselected. Do not run tests.",
-              {},
-            )
-          }
+          title="Fetch fresh environments and collections for the selected workspace"
+          onClick={refreshWorkspace}
         >
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M12 3v9M7 5.7a8 8 0 1 0 10 0" />
@@ -344,7 +363,7 @@ function Panel() {
           {waiting
             ? "Waiting for ChatGPT · check the conversation"
             : hasWorkspaces
-              ? "Ready · power cycle to fetch fresh workspace, environment, and collection lists"
+              ? "Power cycle refreshes only the selected workspace"
               : embedded
                 ? "Uses your Postman connection in ChatGPT"
                 : "Open in ChatGPT with Postman enabled"}
@@ -439,7 +458,7 @@ function Panel() {
                     ? source === "all"
                       ? `${allCollections.length} collections · workspace mix`
                       : "Single collection · focused signal"
-                    : "Workspace choices were not preloaded. Ask ChatGPT to reopen Postmod with workspace catalogs."}
+                    : "Fetching choices for this workspace…"}
           </div>
         </div>
         <div className="tuner-controls">
@@ -454,7 +473,9 @@ function Panel() {
               onChange={(i) => selectWorkspace(workspaceOptions[i].id)}
             />
             <small>01 / RECEIVE</small>
-            <p className="tuner-help">Workspace choices are preloaded.</p>
+            <p className="tuner-help">
+              Changing workspace fetches its choices after you stop turning.
+            </p>
           </div>
           <div className="tuner-knob">
             <span>ENVIRONMENT</span>
@@ -463,7 +484,7 @@ function Panel() {
               index={environmentIndex}
               count={environmentOptions.length}
               valueText={environmentOptions[environmentIndex].name}
-              disabled={busy || running || !workspace}
+              disabled={busy || running || !workspace || !data}
               onChange={(i) => changeEnvironment(environmentOptions[i].id)}
             />
             <small>02 / TUNE</small>
@@ -487,7 +508,7 @@ function Panel() {
             <p className="tuner-help" role="status">
               {!data
                 ? workspace
-                  ? "Workspace choices were not preloaded. Ask ChatGPT to reopen Postmod."
+                  ? "Waiting for this workspace’s collection list."
                   : "Choose a workspace to browse its collections."
                 : allCollections.length
                   ? "Browse loaded collections. No extra loading needed."
@@ -496,7 +517,7 @@ function Panel() {
           </div>
         </div>
         <div className="tuner-bottom">
-          <span>TURN TO SELECT · OPTIONS UPDATE INSTANTLY</span>
+          <span>WORKSPACE FETCHES · ENVIRONMENT & COLLECTIONS STAY LOCAL</span>
         </div>
       </section>
       {data && layout.meters && (
