@@ -22,6 +22,7 @@ export function Dial({
   return (
     <div className={`dial-control ${small ? "dial-small" : ""}`}>
       <button
+        type="button"
         aria-label={`Previous ${label}`}
         disabled={unavailable}
         onClick={() => step(-1)}
@@ -49,6 +50,7 @@ export function Dial({
         <i />
       </div>
       <button
+        type="button"
         aria-label={`Next ${label}`}
         disabled={unavailable}
         onClick={() => step(1)}

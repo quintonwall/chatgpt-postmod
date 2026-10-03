@@ -33,12 +33,11 @@ Start a new Work chat with **both Postman and Postmod enabled**, then ask:
 
 > Open Postmod with my connected Postman account. Preload environment and collection names for my workspaces, then open Postmod without asking me to choose first. Don’t run tests.
 
-ChatGPT preloads environment and collection names for your created workspaces , then opens Postmod without a workspace question. All three dials select locally. **Power cycle** refreshes this same narrowed inventory. Full collection bodies are not fetched for discovery, so coverage can remain unknown. If rate limited, discovery stops and reports unfinished workspace inventories instead of retrying or broadening the scan.
+ChatGPT preloads environment and collection names for your created workspaces , then opens Postmod without a workspace question. All three dials select locally. Dial changes never request new inventory or a new panel. Full collection bodies are not fetched for discovery, so coverage can remain unknown. If rate limited, discovery stops and reports unfinished workspace inventories instead of retrying or broadening the scan.
 
 ## Using Postmod
 
-- **Signal light:** the blue light and **SIGNAL PROCESSING** label pulse while workspace data is loading, then settle when the result arrives. Power cycle refreshes the narrowed inventory.
-- **Dials:** drag, use +/−, or use keyboard arrows. All three dials select locally. Environment and collection choices use the loaded catalog locally.
+- **Dials:** drag, use +/−, or use keyboard arrows. Environment and collection choices use the loaded catalog locally.
 - **Meters:** inspect OpenAPI links and script/test presence. Unknown values remain unknown; these aren't code-coverage measurements.
 - **Run tests:** choose your scope, activate the switch, then confirm. Actual requests may change API data. Execution requires a supported Postman tool.
 - **Equalizer:** shows real endpoint results when provided. A final-summary-only response cannot supply live animation.

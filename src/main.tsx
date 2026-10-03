@@ -1,4 +1,3 @@
-import { inventoryInstructions } from "../server/workspace-discovery";
 import { workspaceData } from "./catalog";
 import type { Snapshot } from "../server/host-contract";
 import { Dial } from "./Dial";
@@ -135,14 +134,6 @@ function Panel() {
       setWaiting(false);
     }
   }
-  async function powerCycle() {
-    setConfirm(false);
-    await ask(
-      "Fetch fresh inventory; do not reuse previous catalogs or results. " +
-        inventoryInstructions,
-      {},
-    );
-  }
   function selectWorkspace(id: string) {
     const next = workspaceData(cap, id);
     const catalogError = cap?.catalogs.find(
@@ -151,7 +142,7 @@ function Panel() {
     setError(
       catalogError ??
         (id && !next
-          ? "This panel did not receive inventory for the selected workspace. Power cycle to fetch it again."
+          ? "This panel did not receive inventory for the selected workspace. Ask ChatGPT to reopen Postmod with complete inventory."
           : ""),
     );
     setWorkspace(id);
@@ -332,51 +323,6 @@ function Panel() {
           </button>
         </div>
       )}
-      <div className="host-connection">
-        <div className="amplifier-vent" aria-hidden="true" />
-        <button
-          className="receiver-power"
-          disabled={busy || running}
-          onClick={() => void powerCycle()}
-          aria-label="Power cycle: refresh inventory for my workspaces"
-        >
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 3v9M7 5.7a8 8 0 1 0 10 0" />
-          </svg>
-          <span>POWER CYCLE</span>
-        </button>
-        <div className="amplifier-vent" aria-hidden="true" />
-        <div
-          className={`signal-indicator ${busy || waiting ? "is-processing" : ""}`}
-          role="status"
-          aria-live="polite"
-          aria-label={
-            busy || waiting
-              ? "Signal processing"
-              : error
-                ? "Signal error"
-                : "Signal ready"
-          }
-        >
-          <i className="signal-light" aria-hidden="true" />
-          <span>
-            {busy || waiting
-              ? "SIGNAL PROCESSING"
-              : error
-                ? "SIGNAL ERROR"
-                : "SIGNAL READY"}
-          </span>
-        </div>
-        <span className="signal-status">
-          {waiting
-            ? "Waiting for ChatGPT · check the conversation"
-            : hasWorkspaces
-              ? "Inventory loaded · all dials select locally"
-              : embedded
-                ? "Uses your Postman connection in ChatGPT"
-                : "Open in ChatGPT with Postman enabled"}
-        </span>
-      </div>
       <section className="tuner" aria-label="Signal tuner">
         <div
           className={`tuner-lcd ${data ? "locked" : ""}`}
@@ -461,7 +407,7 @@ function Panel() {
               : !workspace
                 ? "Turn the workspace dial to begin."
                 : !data
-                  ? "Workspace inventory is missing. Power cycle to fetch it again."
+                  ? "Workspace inventory is missing. Ask ChatGPT to reopen Postmod with complete inventory."
                   : !env
                     ? "Choose a collection and an environment, or No environment."
                     : data
@@ -518,7 +464,7 @@ function Panel() {
             <p className="tuner-help" role="status">
               {!data
                 ? workspace
-                  ? "Inventory was not supplied. Power cycle to fetch it again."
+                  ? "Inventory was not supplied. Ask ChatGPT to reopen Postmod with complete inventory."
                   : "Choose a workspace to browse its collections."
                 : allCollections.length
                   ? "Browse loaded collections. No extra loading needed."
@@ -527,7 +473,7 @@ function Panel() {
           </div>
         </div>
         <div className="tuner-bottom">
-          <span>ALL DIALS SELECT LOCALLY · POWER CYCLE TO REFRESH</span>
+          <span>TURN TO BROWSE · ALL DIALS STAY LOCAL</span>
         </div>
       </section>
       {data && layout.meters && (

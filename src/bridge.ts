@@ -1,5 +1,5 @@
+import { acceptsSnapshot } from "./snapshot-gate";
 import { App } from "@modelcontextprotocol/ext-apps";
-import { OpenAIExtensions } from "@openai/mcp-extensions/app";
 import {
   emptySnapshot,
   snapshotSchema,
@@ -11,7 +11,6 @@ const app = new App(
   {},
   { autoResize: true },
 );
-const extensions = new OpenAIExtensions(app);
 let latest: Snapshot = emptySnapshot;
 let received = false;
 let expectedRequestId: string | undefined;
@@ -19,7 +18,8 @@ const listeners = new Set<(s: Snapshot) => void>();
 app.ontoolresult = (r) => {
   const parsed = snapshotSchema.safeParse(r.structuredContent);
   if (!parsed.success) return;
-  if (expectedRequestId && parsed.data.requestId !== expectedRequestId) return;
+  if (!acceptsSnapshot(received, expectedRequestId, parsed.data.requestId))
+    return;
   expectedRequestId = undefined;
   latest = parsed.data;
   received = true;
@@ -65,13 +65,4 @@ export async function requestPostman(
       "ChatGPT did not accept the request. Ask in chat with both plugins enabled.",
     );
   return requestId;
-}
-export async function shareContext(context: Record<string, unknown>) {
-  if (!embedded) return;
-  await ready;
-  const params = {
-    content: [{ type: "text" as const, text: JSON.stringify(context) }],
-  };
-  if (extensions.modelContext) await extensions.modelContext.update(params);
-  else await app.updateModelContext(params);
 }
