@@ -136,15 +136,7 @@ function Panel() {
   }
   function selectWorkspace(id: string) {
     const next = workspaceData(cap, id);
-    const catalogError = cap?.catalogs.find(
-      (catalog) => catalog.workspaceId === id,
-    )?.error;
-    setError(
-      catalogError ??
-        (id && !next
-          ? "This panel did not receive inventory for the selected workspace. Ask ChatGPT to reopen Postmod with complete inventory."
-          : ""),
-    );
+    setError("");
     setWorkspace(id);
     setData(next);
     setEnvironments(next?.environments ?? []);
@@ -468,7 +460,9 @@ function Panel() {
                   : "Choose a workspace to browse its collections."
                 : allCollections.length
                   ? "Browse loaded collections. No extra loading needed."
-                  : "No collections were returned for this workspace."}
+                  : data.warnings.length
+                    ? "Collection inventory unavailable. See inventory status below."
+                    : "No collections in the loaded inventory."}
             </p>
           </div>
         </div>
@@ -476,6 +470,20 @@ function Panel() {
           <span>TURN TO BROWSE · ALL DIALS STAY LOCAL</span>
         </div>
       </section>
+      <div
+        className="inventory-status"
+        role="status"
+        aria-live="polite"
+        tabIndex={0}
+      >
+        {!workspace
+          ? "Choose a workspace to browse its inventory."
+          : !data
+            ? "Inventory was not supplied for this workspace. Ask ChatGPT to reopen Postmod with complete inventory."
+            : data.warnings.length
+              ? data.warnings.join(" · ")
+              : `${environments.length} environments · ${allCollections.length} collections loaded`}
+      </div>
       {data && layout.meters && (
         <section className="amplifier">
           <div className="screw tl" />
@@ -543,11 +551,6 @@ function Panel() {
           </div>
         </section>
       )}
-      {data?.warnings.map((w) => (
-        <div key={w} className="notice">
-          {w}
-        </div>
-      ))}
       {data && layout.equalizer && (
         <Equalizer
           key={source}

@@ -7,16 +7,25 @@ export function workspaceData(
   id: string,
 ): Summary | undefined {
   if (!id || !snapshot) return undefined;
-  if (snapshot.summary?.workspace.id === id) return snapshot.summary;
+  const summary =
+    snapshot.summary?.workspace.id === id ? snapshot.summary : undefined;
   const workspace = snapshot.workspaces.find((item) => item.id === id);
   const catalog = snapshot.catalogs.find((item) => item.workspaceId === id);
-  if (!workspace || !catalog) return undefined;
+  if (!workspace || !catalog) return summary;
   return {
     workspace,
     environments: catalog.environments,
-    collections: catalog.collections,
-    updatedAt: catalog.updatedAt ?? "",
-    warnings: catalog.error ? [catalog.error] : [],
+    collections: catalog.collections.map((collection) => {
+      const details = summary?.collections.find(
+        (item) => item.id === collection.id,
+      );
+      return details ? { ...collection, ...details } : collection;
+    }),
+    updatedAt: summary?.updatedAt ?? catalog.updatedAt ?? "",
+    warnings: [
+      ...(catalog.error ? [catalog.error] : []),
+      ...(summary?.warnings ?? []),
+    ],
     mode: "host",
   };
 }

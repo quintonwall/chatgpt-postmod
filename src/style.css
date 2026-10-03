@@ -2108,3 +2108,30 @@ footer a:focus-visible {
   outline: 2px solid #e9b681;
   outline-offset: 3px;
 }
+
+/* Reserve stable space while users browse names and inventory notices. */
+.lcd-channels strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  height: 3em;
+  overflow: hidden;
+}
+.lcd-bottomline {
+  height: calc(3em + 11px);
+  overflow-y: auto;
+}
+.tuner-help {
+  height: 4.5em;
+  overflow-y: auto;
+}
+.inventory-status {
+  box-sizing: border-box;
+  height: 64px;
+  overflow-y: auto;
+  margin: 8px 0;
+  padding: 8px 12px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #b3b7a3;
+}

@@ -63,3 +63,50 @@ test("missing, mismatched, and duplicate inventories are rejected before renderi
     "Permission denied",
   ]);
 });
+
+test("partial coverage cannot hide collections in the workspace inventory", () => {
+  const snapshot = renderSnapshot({
+    connected: true,
+    canRun: false,
+    workspaceId: "a",
+    environmentId: "none",
+    workspaces: [{ id: "a", name: "A" }],
+    catalogs: [
+      {
+        workspaceId: "a",
+        environments: [{ id: "env", name: "Env" }],
+        collections: [
+          { id: "one", name: "One" },
+          { id: "two", name: "Two" },
+        ],
+      },
+    ],
+    summary: {
+      workspace: { id: "a", name: "A" },
+      environments: [],
+      collections: [
+        {
+          id: "one",
+          name: "One",
+          requests: 3,
+          tests: 2,
+          pre: null,
+          spec: null,
+        },
+      ],
+      updatedAt: "now",
+      warnings: [],
+      mode: "host",
+    },
+  });
+  const data = workspaceData(snapshot, "a")!;
+  assert.deepEqual(
+    data.collections.map((c) => c.id),
+    ["one", "two"],
+  );
+  assert.equal(data.collections[0].tests, 2);
+  assert.equal(data.collections[1].tests, null);
+  assert.equal(data.environments[0].id, "env");
+  snapshot.summary!.collections = [];
+  assert.equal(workspaceData(snapshot, "a")?.collections.length, 2);
+});
