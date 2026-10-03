@@ -4,17 +4,19 @@ A stereo-inspired Postman control panel inside ChatGPT. Dial into a workspace, c
 
 ## Quickstart — hosted Postmod
 
+**Before you start, update the ChatGPT desktop app to the latest available version and restart it.** Open **Plugins** directly from the left sidebar. Older versions may show **Customize → Plugins** instead; update first if your navigation differs.
+
 Use [hosted Postmod](https://chatgpt-postmod.vercel.app/) with the MCP endpoint below. **No local server, repository clone, or Vercel setup is needed.** Add it in ChatGPT to use your Postman connection; opening the website alone does not connect your account.
 
 ### 1. Connect Postman
 
-Open **Customize → Plugins → Add** in ChatGPT and install the official **Postman** plugin and connect your account through its sign-in flow.
+Follow the [official plugin installation docs](https://learn.chatgpt.com/docs/plugins) to install the **Postman** plugin, then connect your account through its sign-in flow.
 
-If it isn't available, enable **Settings → Security and login → Developer mode**, then add an MCP connection using `https://mcp.postman.com/mcp` with **OAuth**. This OAuth path supports Postman's US remote server; EU currently requires API keys. [Postman setup details](https://learning.postman.com/docs/reference/postman-api/postman-mcp-server/postman-mcp-remote-server).
+If the Postman plugin isn't available, follow the [Postman remote MCP setup docs](https://learning.postman.com/docs/reference/postman-api/postman-mcp-server/postman-mcp-remote-server) for connection and authentication instructions.
 
 ### 2. Add Postmod
 
-With developer mode enabled, open **Customize → Plugins → Add** and choose **MCP**:
+Follow the [official connection setup docs](https://developers.openai.com/plugins/deploy/connect-chatgpt) for the current developer-mode and MCP connection steps. Use these Postmod values:
 
 | Field | Value |
 | --- | --- |
@@ -31,11 +33,11 @@ Start a new Work chat with **both Postman and Postmod enabled**, then ask:
 
 > Use Postman's getWorkspaces, then open Postmod with my workspaces.
 
-Turn the dials in order: **Workspace → Environment → Collections**. Data loads after selecting workspace and environment. Collections starts on **All collections**.
+Turn the **Workspace** dial, then click **Load environments**. Choose an **Environment** (or **No environment**), then click **Load collections**. Dial movements stay local; only the load buttons request data from ChatGPT. The **Collections** dial starts on **All collections** and filters the loaded data locally.
 
 ## Using Postmod
 
-- **Dials:** drag, use +/−, or use keyboard arrows. ChatGPT fetches the requested Postman data; results may open a refreshed panel.
+- **Dials:** drag, use +/−, or use keyboard arrows to choose locally. Click a load button when ready. ChatGPT fetches Postman data only for that request; its result may open a refreshed panel.
 - **Meters:** inspect OpenAPI links and script/test presence. Unknown values remain unknown; these aren't code-coverage measurements.
 - **Run tests:** choose your scope, activate the switch, then confirm. Actual requests may change API data. Execution requires a supported Postman tool.
 - **Equalizer:** shows real endpoint results when provided. A final-summary-only response cannot supply live animation.

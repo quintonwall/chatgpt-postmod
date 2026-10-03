@@ -2,13 +2,7 @@ import { Dial } from "./Dial";
 import { Equalizer } from "./Equalizer";
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import {
-  invoke,
-  shareContext,
-  requestPostman,
-  subscribeSnapshot,
-  embedded,
-} from "./bridge";
+import { invoke, requestPostman, subscribeSnapshot, embedded } from "./bridge";
 import type { Summary, Job } from "../server/types";
 import "./style.css";
 const pct = (n: number, d: number) => (d ? Math.round((n / d) * 100) : null);
@@ -106,8 +100,7 @@ function Panel() {
   );
   useEffect(() => {
     invoke("open_postmod")
-      .then((c) => {
-        setCap(c);
+      .then(() => {
         setBusy(false);
       })
       .catch((e) => {
@@ -138,7 +131,7 @@ function Panel() {
       setWaiting(false);
     }
   }
-  async function load(id: string) {
+  function selectWorkspace(id: string) {
     setWorkspace(id);
     setData(undefined);
     setJob(undefined);
@@ -146,18 +139,22 @@ function Panel() {
     setEnvironments([]);
     setSource("all");
     setConfirm(false);
+  }
+  async function load(id: string) {
     if (id)
       await ask(
         "Read this workspace's environments using getWorkspace or the available environment listing tool. Do not scan collections yet.",
         { workspaceId: id, environmentId: "", source: "all" },
       );
   }
-  async function tune(value: string) {
+  function selectEnvironment(value: string) {
     setEnv(value);
     setData(undefined);
     setJob(undefined);
     setSource("all");
     setConfirm(false);
+  }
+  async function tune(value: string) {
     if (value && workspace)
       await ask(
         "Read collections and coverage metadata for this workspace using available Postman tools. Get full collections as needed for inherited pre-request and post-response script counts. Unknown spec/script coverage stays null. Do not run tests.",
@@ -200,7 +197,7 @@ function Panel() {
     environmentOptions.findIndex((e) => e.id === env),
   );
   function changeEnvironment(value: string) {
-    void tune(value);
+    selectEnvironment(value);
   }
   const allCollections = data?.collections ?? [];
   const collections =
@@ -218,11 +215,9 @@ function Panel() {
   function changeSource(value: string) {
     setSource(value);
     setConfirm(false);
-    void shareContext({
-      workspaceId: workspace,
-      collectionId: value === "all" ? null : value,
-    }).catch(() => {});
   }
+  const hasWorkspaces = !!cap?.workspaces?.length;
+  const hasPostmanData = hasWorkspaces || cap?.connected;
   const matchingRows = job?.rows.filter((r) => selected.includes(r.id)) ?? [];
   const scopedJob =
     job && matchingRows.length ? { ...job, rows: matchingRows } : undefined;
@@ -264,20 +259,20 @@ function Panel() {
         </div>
         <div className="header-right">
           <span
-            className={`connection ${connectionFailed ? "disconnected" : ""}`}
+            className={`connection ${connectionFailed && !hasPostmanData ? "disconnected" : ""}`}
             role="status"
             title={
-              connectionFailed
+              connectionFailed && !hasPostmanData
                 ? "Connect Postman in ChatGPT and load your workspaces."
-                : cap?.connected
+                : hasPostmanData
                   ? "Postman metadata was supplied by ChatGPT; this is not a live OAuth session check."
                   : "Checking Postman connection"
             }
           >
             <i />
-            {connectionFailed
+            {connectionFailed && !hasPostmanData
               ? "NOT CONNECTED"
-              : cap?.connected
+              : hasPostmanData
                 ? "POSTMAN VIA CHATGPT"
                 : embedded
                   ? "LOAD POSTMAN"
@@ -341,14 +336,18 @@ function Panel() {
             )
           }
         >
-          Load workspaces from Postman
+          {hasWorkspaces
+            ? "Refresh workspaces"
+            : "Load workspaces from Postman"}
         </button>
         <span>
           {waiting
             ? "Waiting for ChatGPT · check the conversation"
-            : embedded
-              ? "Uses your Postman connection in ChatGPT"
-              : "Open in ChatGPT with Postman enabled"}
+            : hasWorkspaces
+              ? "Workspaces loaded from Postman · choose with the dials below"
+              : embedded
+                ? "Uses your Postman connection in ChatGPT"
+                : "Open in ChatGPT with Postman enabled"}
         </span>
       </div>
       <section className="tuner" aria-label="Signal tuner">
@@ -435,12 +434,12 @@ function Panel() {
               : !workspace
                 ? "Turn the workspace dial to begin."
                 : !env
-                  ? "Turn the environment dial to lock your signal."
+                  ? "Load environments, then choose an environment or No environment."
                   : data
                     ? source === "all"
                       ? `${allCollections.length} collections · workspace mix`
                       : "Single collection · focused signal"
-                    : "Signal unavailable · adjust the dials or retry."}
+                    : "Selection ready · click Load collections to apply."}
           </div>
         </div>
         <div className="tuner-controls">
@@ -452,7 +451,7 @@ function Panel() {
               count={workspaceOptions.length}
               valueText={workspaceOptions[workspaceIndex].name}
               disabled={busy || running}
-              onChange={(i) => void load(workspaceOptions[i].id)}
+              onChange={(i) => selectWorkspace(workspaceOptions[i].id)}
             />
             <small>01 / RECEIVE</small>
           </div>
@@ -482,13 +481,17 @@ function Panel() {
           </div>
         </div>
         <div className="tuner-bottom">
-          <span>TURN TO TUNE · ← → TO STEP</span>
+          <span>TURN TO SELECT · CLICK TO LOAD</span>
           <button
             className="refresh"
             disabled={busy || running || !workspace}
             onClick={() => (env ? void tune(env) : void load(workspace))}
           >
-            ↻ Refresh signal
+            {env
+              ? data
+                ? "↻ Refresh collections"
+                : "Load collections"
+              : "Load environments"}
           </button>
         </div>
       </section>

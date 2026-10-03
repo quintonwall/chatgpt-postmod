@@ -100,7 +100,7 @@ ChatGPT must be able to reach this endpoint without an interactive Vercel login 
 
 ## 4. Register the plugin and validate real use
 
-In ChatGPT, use **Customize → Plugins → Add**, choose **MCP**, and follow the [README quickstart](README.md#2-add-postmod), giving users the deployed `/api/mcp` URL. Postmod's renderer uses no authentication. Each user independently connects the **Postman** plugin through OAuth in ChatGPT and enables both plugins in the same conversation.
+Update the ChatGPT desktop app to the latest available version, then follow the [official connection setup docs](https://developers.openai.com/plugins/deploy/connect-chatgpt) and the [README quickstart](README.md#2-add-postmod), giving users the deployed `/api/mcp` URL. Postmod's renderer uses no authentication. Each user independently connects the **Postman** plugin through OAuth in ChatGPT and enables both plugins in the same conversation.
 
 Test these before sharing the deployment:
 
