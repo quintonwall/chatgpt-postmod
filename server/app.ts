@@ -28,14 +28,15 @@ async function dispatch(name: Tool, args: unknown) {
 const uri = "ui://postmod/panel.html";
 const descriptions: Record<Tool, string> = {
   open_postmod:
-    "Open Postmod. First use the connected Postman getWorkspaces tool if authorized, and provide its real workspace metadata in snapshot. " +
-    hostInstructions,
+    "Open Postmod. First use the connected Postman getWorkspaces tool if authorized, and provide its real workspace metadata in snapshot.",
   render_postmod:
-    "Render a complete Postmod snapshot after using connected Postman tools to satisfy the user's panel request. This tool only renders supplied data. " +
-    hostInstructions,
+    "Render a complete Postmod snapshot after using connected Postman tools to satisfy the user's panel request. This tool only renders supplied data.",
 };
 function mcp() {
-  const server = new McpServer({ name: "postmod", version: "0.1.0" });
+  const server = new McpServer(
+    { name: "postmod", version: "0.1.1" },
+    { instructions: hostInstructions },
+  );
   new OpenAIExtensions(server);
   registerAppResource(server, "Postmod", uri, {}, async () => ({
     contents: [
@@ -68,12 +69,16 @@ function mcp() {
         _meta:
           name === "open_postmod"
             ? {
+                securitySchemes: [{ type: "noauth" }],
                 ui: { resourceUri: uri },
                 "openai/ui": {
                   entrypoints: [{ type: "global" }, { type: "thread" }],
                 },
               }
-            : { ui: { resourceUri: uri, visibility: ["model"] } },
+            : {
+                securitySchemes: [{ type: "noauth" }],
+                ui: { resourceUri: uri, visibility: ["model"] },
+              },
       },
       async (args: any) => {
         try {
@@ -101,6 +106,34 @@ function mcp() {
 }
 const app = express();
 app.use(express.json({ limit: "128kb" }));
+// Log discovery progress only: never log arguments, snapshots, headers or credentials.
+app.use((req, res, next) => {
+  if (["/mcp", "/api/mcp"].includes(req.path)) {
+    const known = new Set([
+      "initialize",
+      "notifications/initialized",
+      "tools/list",
+      "resources/list",
+      "resources/templates/list",
+      "resources/read",
+      "tools/call",
+      "ping",
+    ]);
+    const method = known.has(req.body?.method) ? req.body.method : "other";
+    res.on("finish", () =>
+      console.info(
+        JSON.stringify({
+          event: "mcp_request",
+          httpMethod: req.method,
+          rpcMethod: method,
+          status: res.statusCode,
+          build: "registration-v2",
+        }),
+      ),
+    );
+  }
+  next();
+});
 // Stateless renderer: allow the known ChatGPT host on MCP routes, not arbitrary origins.
 app.use((req, res, next) => {
   const origin = req.headers.origin;
@@ -173,16 +206,14 @@ app.post(["/mcp", "/api/mcp"], async (req, res) => {
 // Stateless transport has no standalone SSE stream or session to delete.
 app.all(["/mcp", "/api/mcp"], (_req, res) => {
   res.setHeader("Allow", "POST, OPTIONS");
-  res
-    .status(405)
-    .json({
-      jsonrpc: "2.0",
-      id: null,
-      error: {
-        code: -32000,
-        message: "Method not allowed; use Streamable HTTP POST.",
-      },
-    });
+  res.status(405).json({
+    jsonrpc: "2.0",
+    id: null,
+    error: {
+      code: -32000,
+      message: "Method not allowed; use Streamable HTTP POST.",
+    },
+  });
 });
 app.get("/health", (_req, res) => res.json({ ok: true }));
 app.use(express.static("dist"));

@@ -67,6 +67,10 @@ test("MCP advertises extension entrypoints and serves a self-contained widget", 
       403,
     );
     const { tools } = await client.listTools();
+    for (const tool of tools) {
+      assert.deepEqual(tool._meta?.securitySchemes, [{ type: "noauth" }]);
+      assert.ok((tool.description?.length ?? 0) < 500);
+    }
     const open = tools.find((t) => t.name === "open_postmod")!;
     assert.deepEqual((open._meta?.["openai/ui"] as any).entrypoints, [
       { type: "global" },
