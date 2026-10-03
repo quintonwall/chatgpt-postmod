@@ -1,68 +1,120 @@
 # Postmod
 
-A compact, amplifier-inspired Postman control panel built as an MCP App with OpenAI Plugin Extensions. Includes sidebar and conversation-panel entrypoints, segmented coverage meters, an animated equalizer, collection inspection, and persistent workspace test jobs.
+Postmod is a stereo-inspired control panel for your Postman workspaces inside ChatGPT. Tune workspace, environment, and collection dials; inspect collection coverage; and request tests using your connected Postman tools.
 
-See [INSTALL.md](INSTALL.md) for real-data setup, ChatGPT registration, and the distinction between Postman OAuth and this build’s API-key authentication.
+**Postman handles your account connection. Postmod displays the results.** Each user signs into Postman through ChatGPT. You never give Postmod or its hosting provider a Postman API key or OAuth token. There is no demo data.
 
-## Run locally
+Deploying Postmod yourself? See [INSTALL.md](INSTALL.md). The instructions below assume you have a deployed Postmod MCP URL from your administrator or your own deployment.
 
-Requires Node.js 22+ and npm. The event-driven Postman Newman runner is bundled as a dependency.
+## 1. Add and connect Postman
 
-```sh
-npm install
-npm run build
-npm start
-```
+1. Open the Plugins directory in ChatGPT and find the official **Postman** plugin. Verify the publisher, then install/enable it if available to your account.
+2. Choose its Connect/Sign in action and complete Postman's OAuth login or your organization's SSO. Review the requested access.
+3. Enable Postman in a new ChatGPT conversation and ask:
 
-Open http://127.0.0.1:4310. Postmod requires a real Postman connection. Without credentials it displays NOT CONNECTED and leaves the controls empty. No demo inventory or demo execution path is included.
+   > Use Postman's getWorkspaces to list my accessible workspaces.
 
-## Connect your Postman account
+4. Check that the returned workspaces belong to the account you intended to connect.
 
-Copy `.env.example` to `.env`, provide `POSTMAN_API_KEY` on the server. Never put the key in the UI or plugin manifest. Restart the server. Postmod connects to the Postman remote MCP server directly; a separately installed Postman plugin is not required.
+Each user completes this independently. Installing Postmod, owning its Vercel deployment, or being signed into ChatGPT does not grant access to a Postman account. Organization policies may require administrator approval.
 
-The default upstream is `https://mcp.postman.com/mcp`. Configure `POSTMAN_MCP_URL` for the appropriate regional endpoint. No separately installed runner is required.
+### If you need to add Postman's MCP server manually
 
-Live mode discovers tools and workspaces, pages collection results, fetches full collection payloads, and inspects explicit OpenAPI relationships. Individual unreadable collections and incomplete spec scans remain unknown. Collection/folder scripts are inherited. Static `pm.test` detection ignores comments and string literals; dynamic code and imported test packages are not fully analyzable. These measurements describe presence, not behavioral or backend code coverage.
+If the official plugin is unavailable and your account permits developer-mode connections:
 
-## Execute tests
+1. Enable **Settings → Security and login → Developer mode**.
+2. Go to **ChatGPT Plugins → +** and add `https://mcp.postman.com/mcp`, the Full Postman toolset.
+3. Use OAuth when offered and follow the discovered sign-in flow. Do not add an API-key header or invent client credentials.
+4. Enable this connection and repeat the workspace-listing check above.
 
-Dial workspace → environment → collections. The LCD waveforms show the selected inputs. The collection selector starts on **All collections**; its dial and +/− controls focus one collection. In live mode, **Run tests → Start run** executes the selected collections. Runs issue real API requests and may mutate the selected system. Collections execute sequentially.
+Use either the official plugin or this manually registered connection; you do not need duplicate Postman connections. The US remote MCP supports OAuth. The EU remote server currently requires API keys, so this OAuth-only setup does not cover EU accounts; do not change regions to bypass that limitation. [Postman remote MCP documentation](https://learning.postman.com/docs/reference/postman-api/postman-mcp-server/postman-mcp-remote-server).
 
-Postmod fetches collections, environments and available workspace globals through MCP, then executes snapshots with the bundled Newman runtime. Its beforeItem, assertion, request, script, and item events drive the endpoint visualization. No reports are uploaded to Postman. Local-only vault secrets, certificates, external files, or account packages may require additional runner configuration and are not copied automatically.
+## 2. Add Postmod to ChatGPT
 
-Each equalizer bar represents one request endpoint. It pulses only between actual endpoint start/completion events. Height is passed assertions divided by passed plus failed assertions; green means all executed assertions passed, red means at least one failed, amber marks an execution error, and gray means no assertions yet. Skipped assertions are counted separately. Zero-percent failures keep a minimal red baseline for visibility. The UI polls current event-derived state every 200ms; very fast requests may finish between polls. Pages follow the active endpoint; clicking a bar shows its counts, status code, and response time. Reduced-motion preferences disable animation.
+This project is currently installed as a personal developer-mode plugin; it is not a published directory listing.
 
-Sanitized run summaries persist in `.data/runs.json` (last 100). Refreshing/reopening the workspace restores its latest run. Restarted in-flight runs become interrupted; they are never replayed automatically.
+1. Enable **Settings → Security and login → Developer mode**, if permitted by your workspace.
+2. Open **Plugins → +** and name the connection **Postmod**.
+3. Enter the Postmod MCP URL supplied by your administrator, for example:
 
-## ChatGPT Plugin Extensions
+   ```text
+   https://YOUR-POSTMOD-DOMAIN/api/mcp
+   ```
 
-- MCP endpoint: `http://127.0.0.1:4310/mcp`
-- UI resource: `ui://postmod/panel.html`
-- Entry tool: `open_postmod`, with `global` and `thread` entrypoints
-- Model context: selected workspace and completed run summaries are shared through the supported host bridge
-- Plugin source: `plugins/postmod/`
+   Replace the example domain. Use the MCP endpoint, not the website homepage or Postman's endpoint.
+4. Select no authentication for Postmod's stateless rendering server. Postman authentication remains on your separate Postman connection.
+5. Confirm ChatGPT discovers `open_postmod` and `render_postmod`. Install/enable the resulting personal plugin where offered.
+6. Start a new Work chat with **both Postman and Postmod enabled**.
 
-The HTML resource bundles its JS and CSS so it does not need external asset access in an MCP App iframe. The local plugin's `.mcp.json` points to the loopback server. Register/install it in a client that supports local HTTP MCP and Plugin Extensions. The browser preview works independently of a host.
+Plugin availability and settings labels can vary by account and workspace. See [OpenAI's connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt).
 
-**This build is a single-user local application, not a public deployment.** Public ChatGPT distribution requires a reachable HTTPS deployment, an authenticated per-user boundary, Postman account authorization and token storage, and registration of the deployed MCP endpoint. The shipped loopback host/origin checks deliberately prevent exposing your configured API key as an unauthenticated public service. It does not implement multi-user OAuth or auto-install another plugin. Live account integration and rendering inside an actual ChatGPT Extension host have not been verified without those connections.
+### Optional: install the bundled workflow skill
 
-## Verification
+Postmod's tools include instructions for coordinating with Postman. The included `plugins/postmod/skills/postmod/SKILL.md` adds a reusable workflow for desktop local-marketplace installations.
 
-```sh
-npm run build
-npm test
-```
+After registering Postmod, copy its actual `plugin_asdk_app...` ID from the connection URL. Ask Plugin Creator:
 
-Tests cover inherited script analysis, static test detection, workspace/environment validation, run idempotency, error sanitization, MCP entrypoint metadata, embedded HTML delivery, and real Newman runs against a temporary localhost HTTP fixture, including mixed assertions, no tests, and script exceptions. The MCP integration test starts its own server on port 4311. Tests require permission to open local sockets. No private workspace is used by the test suite.
+> Package this repository's plugins/postmod folder for my personal marketplace. Preserve its skill and branding. Map it to my registered Postmod connection ID through .app.json, replacing the localhost MCP connection rather than adding a duplicate server. Do not copy Postman credentials. I will enable my separately connected Postman plugin in the same chat.
 
-Tool contract: [docs/contract.md](docs/contract.md).
+Supply the real registered ID. Install from the resulting local source and start a new chat. The repository's `.mcp.json` points to localhost for development and is not the hosted configuration. [OpenAI packaging guide](https://developers.openai.com/plugins/build/plugins).
 
-Official references: [Plugin Extensions](https://developers.openai.com/plugins/build/extensions), [MCP App UI](https://developers.openai.com/plugins/build/chatgpt-ui), [Postman MCP](https://www.postman.com/product/mcp-server/).
+## 3. Open the control panel
 
-## Dependency status
+With both plugins enabled, ask:
 
-The pinned Newman dependency tree still has upstream npm advisories (11 total: 5 moderate and 6 high at verification). Compatible overrides remove the critical Handlebars issue and patch lodash, flatted, qs, and underscore. This is another reason to keep this build local and to review/replace the runner dependency chain before a production release.
+> Use my connected Postman plugin to call getWorkspaces, then open Postmod with the returned workspace metadata. Leave workspace and environment untuned. Use my existing Postman authorization.
 
-## Panel layout
+You can also use **Load workspaces from Postman** in the panel. ChatGPT performs the Postman call and returns a structured snapshot for Postmod to display.
 
-Open the gear (Panel settings) to show or hide coverage meters, the endpoint equalizer, and collection details. Details are hidden by default; the large channel table has been removed. Visibility is remembered in browser storage when available. Source selection defaults to the full workspace on load.
+The **POSTMAN VIA CHATGPT** label means the host supplied Postman metadata. It is not an independent check of your OAuth session, and Postmod does not infer your account email. To change or disconnect accounts, use the Postman connection settings in ChatGPT.
+
+## 4. Dial in your workspace
+
+The three dials work in order:
+
+| Dial | What it controls |
+| --- | --- |
+| Workspace | Chooses a workspace and requests its environments |
+| Environment | Chooses the environment and requests collection/coverage metadata; explicitly choose No environment to use collection defaults |
+| Collections | Starts on All collections; turn it to focus on an individual collection |
+
+Use the dial, its +/− controls, or keyboard arrow keys. The colored LCD waveforms reflect the selected inputs. Data populates after workspace and environment are selected; changing workspace clears the previous selection.
+
+Dial actions may take a ChatGPT turn. Check the conversation while the panel is waiting. Depending on the host, the result may update this panel or open a refreshed one with the selected dials restored.
+
+Coverage meters show linked OpenAPI specs and the presence of pre-request/post-response scripts, including inherited scripts when inspected. These are presence measurements, not code coverage. Unknown data stays unknown.
+
+Use the gear to show or hide coverage meters, the endpoint equalizer, and collection details.
+
+## 5. Run tests
+
+1. Select the workspace, environment, and collection scope you intend to test.
+2. Activate **Run tests** and review the confirmation before choosing **Start run**.
+3. ChatGPT uses an available Postman execution tool for those selected IDs. Real tests can change the target API's data.
+4. Inspect the actual returned results. For a reported running job, **Refresh run status** requests its existing status instead of starting another run.
+
+Execution is available only when a suitable connected Postman tool is confirmed. The switch returns to idle when a completed result reaches the panel.
+
+The equalizer shows endpoint-level results only when the upstream tool provides them. Bars represent assertion pass rates: green for passing assertions, red for failures, amber for execution errors, and gray for no assertions. If Postman returns only a final collection summary, Postmod cannot manufacture a live endpoint stream.
+
+A waiting timeout does not mean the run failed. Check the chat and any refreshed panel; **do not repeat execution just to retrieve results**.
+
+## Troubleshooting
+
+| Problem | What to check |
+| --- | --- |
+| No Postman tools | Connect and enable Postman in the same chat; check workspace policy |
+| No workspaces | Verify the Postman account's membership, region, and permissions |
+| Website cannot load data | The standalone page cannot access ChatGPT connections; use the extension inside ChatGPT |
+| ChatGPT asks for a Postmod API key | Refresh stale tool metadata/start a new chat; this renderer needs no Postman credentials |
+| Dial result does not appear | Inspect the conversation for an error or a newly rendered panel |
+| Test switch disabled | Finish tuning and verify that the connected Postman toolset supports execution |
+| No live bars | The upstream tool may not return endpoint-level progress |
+
+After an administrator updates the server, refresh the Postmod connection in ChatGPT and start a new chat.
+
+## Data handling and current limits
+
+Postman credentials remain with ChatGPT's Postman connection. Workspace metadata and sanitized results passed to Postmod travel through its rendering server and the conversation. Postmod does not persist them server-side; hosting and conversation retention policies still apply. Never include secrets, environment values, or sensitive request/response payloads in rendering snapshots.
+
+The host-mediated flow is implemented and locally tested, but end-to-end ChatGPT + Postman + Vercel behavior still requires verification in your account. Same-panel delivery and live endpoint events are not guaranteed. The app does not automatically inherit another plugin's token or directly invoke its tools.

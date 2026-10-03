@@ -1,12 +1,9 @@
-# Postmod tool contract
+# Host-mediated contract
 
-All tools return structuredContent and a text fallback. IDs are opaque strings.
+Postmod exposes only `open_postmod({snapshot?})` and `render_postmod({snapshot})`. See `server/host-contract.ts` for the validated schema. Both are read-only, stateless render operations returning structured content with `ui://postmod/panel.html`.
 
-- open_postmod: returns connection status, mode, accessible workspaces, and runner capability; attaches the UI resource and global/thread extension entrypoints.
-- get_workspace_summary({workspaceId}): returns workspace metadata, environments, collection metrics, scan errors and timestamp. Counts reflect all paginated collection results. Unknown collection metrics are null, never zero.
-- start_workspace_run({workspaceId, collectionIds, environmentId?, confirmed, requestId}): requires an explicit execution action and an idempotency key. Validates membership against the workspace. Returns a job with queued collection rows.
-- get_run_status({runId}): returns current job state and per-collection results. No credentials or raw response bodies.
+ChatGPT performs upstream calls using its separately connected Postman plugin. UI requests use `ui/message`; no request is sent directly to Postman. Include requestId, real workspace/environment references, selections, nullable coverage metrics, and optional actual run results. Never include credentials or environment values. A complete snapshot allows a new iframe to restore the same selection.
 
-HTTP development transport: POST /api/tools/:name with the same JSON arguments. MCP transport: POST /mcp. Local-only, single-user deployment; no public authentication boundary is supplied by this prototype.
+Unknown metrics must be null. Summary requires a matching workspace and explicit environment (use `none` for no environment). Runs must match selection. Rendering does not verify the provenance of supplied data and never grants Postman access. No snapshots are persisted server-side.
 
-Metrics: pre-request script presence and statically detectable pm.test definitions propagate from ancestors; they are not behavioral or code coverage. Linked OpenAPI counts only verified spec relationships. No-test runs are not passing tests. Jobs execute sequentially and persist sanitized results to .data/runs.json; interrupted jobs are marked interrupted on restart. Demo inventory is synthetic, but runs execute actual local HTTP fixtures. Run rows include endpoint records with queued/running/final state, passed/failed/skipped assertions, status code and duration. The bundled Newman runtime drives these values from execution events.
+The host may not deliver a render result to the same iframe. Real-account testing is required; a 90-second waiting message does not mean a tool failed, and execution requests must not be automatically retried.

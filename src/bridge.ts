@@ -1,52 +1,70 @@
 import { App } from "@modelcontextprotocol/ext-apps";
 import { OpenAIExtensions } from "@openai/mcp-extensions/app";
+import {
+  emptySnapshot,
+  snapshotSchema,
+  type Snapshot,
+} from "../server/host-contract";
 export const embedded = window.parent !== window;
 const app = new App(
   { name: "Postmod", version: "0.1.0" },
   {},
   { autoResize: true },
 );
-export const extensions = new OpenAIExtensions(app);
-let initial: any;
-let resolveInitial: (v: any) => void;
-const initialResult = new Promise((r) => {
-  resolveInitial = r;
-});
+const extensions = new OpenAIExtensions(app);
+let latest: Snapshot = emptySnapshot;
+let received = false;
+let expectedRequestId: string | undefined;
+const listeners = new Set<(s: Snapshot) => void>();
 app.ontoolresult = (r) => {
-  initial = r.structuredContent;
-  resolveInitial(initial);
+  const parsed = snapshotSchema.safeParse(r.structuredContent);
+  if (!parsed.success) return;
+  if (expectedRequestId && parsed.data.requestId !== expectedRequestId) return;
+  expectedRequestId = undefined;
+  latest = parsed.data;
+  received = true;
+  for (const listener of listeners) listener(latest);
 };
 const ready = embedded ? app.connect() : Promise.resolve();
+export function subscribeSnapshot(listener: (s: Snapshot) => void) {
+  listeners.add(listener);
+  if (received) listener(latest);
+  return () => {
+    listeners.delete(listener);
+  };
+}
 export async function invoke(name: string, args: Record<string, unknown> = {}) {
-  if (embedded) {
+  if (name === "open_postmod") {
     await ready;
-    if (name === "open_postmod") {
-      const result =
-        initial ??
-        (await Promise.race([
-          initialResult,
-          new Promise((r) => setTimeout(() => r(null), 1000)),
-        ]));
-      if (result) return result;
-    }
-    const result = await app.callServerTool({ name, arguments: args });
-    if (result.isError)
-      throw new Error(
-        result.content
-          ?.filter((c: any) => c.type === "text")
-          .map((c: any) => c.text)
-          .join(" ") || "Operation failed",
-      );
-    return result.structuredContent;
+    return latest;
   }
-  const response = await fetch(`/api/tools/${name}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(args),
+  throw new Error("Use the ChatGPT Postman connection to request data.");
+}
+export async function requestPostman(
+  action: string,
+  selection: Record<string, unknown>,
+) {
+  if (!embedded)
+    throw new Error(
+      "Open Postmod in ChatGPT with the Postman plugin enabled. This standalone page cannot access your ChatGPT connections.",
+    );
+  await ready;
+  const requestId = crypto.randomUUID();
+  expectedRequestId = requestId;
+  const response = await app.sendMessage({
+    role: "user",
+    content: [
+      {
+        type: "text",
+        text: `Postmod action: ${action}. Use my connected Postman plugin, not a separate API key. Return a complete snapshot through Postmod render_postmod with requestId ${requestId}. Preserve workspace list and selections. Only return real metadata; no secrets or invented coverage/progress. Current selection and request: ${JSON.stringify(selection)}. If unavailable, report the error via render_postmod and explain in chat. For a test request execute once only; refreshing must inspect the existing run, never execute again.`,
+      },
+    ],
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error);
-  return data;
+  if (response.isError)
+    throw new Error(
+      "ChatGPT did not accept the request. Ask in chat with both plugins enabled.",
+    );
+  return requestId;
 }
 export async function shareContext(context: Record<string, unknown>) {
   if (!embedded) return;

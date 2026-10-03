@@ -30,8 +30,9 @@ test("MCP advertises extension entrypoints and serves a self-contained widget", 
       { type: "thread" },
     ]);
     const r = await client.callTool({ name: "open_postmod", arguments: {} });
-    assert.equal(r.isError, true);
-    assert.match(JSON.stringify(r.content), /POSTMAN_API_KEY/);
+    assert.equal(r.isError, undefined);
+    assert.deepEqual((r.structuredContent as any).workspaces, []);
+    assert.equal((r.structuredContent as any).connected, false);
     assert.equal(
       (await fetch("http://127.0.0.1:4311/demo-api/test/1")).status,
       404,
@@ -43,15 +44,29 @@ test("MCP advertises extension entrypoints and serves a self-contained widget", 
     const html = resource.contents[0].text as string;
     assert.ok(html.includes("postmod"));
     assert.ok(!html.includes('src="/assets/'));
-    const bad = await client.callTool({
-      name: "start_workspace_run",
+    assert.deepEqual(tools.map((t) => t.name).sort(), [
+      "open_postmod",
+      "render_postmod",
+    ]);
+    const rendered = await client.callTool({
+      name: "render_postmod",
       arguments: {
-        workspaceId: "unconfigured",
-        collectionIds: ["unconfigured-collection"],
-        requestId: "invalid",
+        snapshot: {
+          workspaces: [{ id: "test-workspace", name: "Fixture" }],
+          connected: true,
+          canRun: false,
+        },
       },
     });
-    assert.equal(bad.isError, true);
+    assert.equal(
+      (rendered.structuredContent as any).workspaces[0].id,
+      "test-workspace",
+    );
+    const fresh = await client.callTool({
+      name: "open_postmod",
+      arguments: {},
+    });
+    assert.deepEqual((fresh.structuredContent as any).workspaces, []);
   } finally {
     await client.close();
     process.kill();

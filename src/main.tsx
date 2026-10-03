@@ -2,7 +2,13 @@ import { Dial } from "./Dial";
 import { Equalizer } from "./Equalizer";
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { invoke, shareContext } from "./bridge";
+import {
+  invoke,
+  shareContext,
+  requestPostman,
+  subscribeSnapshot,
+  embedded,
+} from "./bridge";
 import type { Summary, Job } from "../server/types";
 import "./style.css";
 const pct = (n: number, d: number) => (d ? Math.round((n / d) * 100) : null);
@@ -80,27 +86,71 @@ function Panel() {
   }, [layout]);
   const [confirm, setConfirm] = useState(false);
   const [settings, setSettings] = useState(false);
+  const [waiting, setWaiting] = useState(false);
+  useEffect(
+    () =>
+      subscribeSnapshot((snapshot) => {
+        setCap(snapshot);
+        setWorkspace(snapshot.workspaceId);
+        setEnv(snapshot.environmentId);
+        setSource(snapshot.source);
+        setEnvironments(snapshot.environments);
+        setData(snapshot.summary);
+        setJob(snapshot.job);
+        setError(snapshot.error ?? "");
+        setConnectionFailed(!snapshot.connected);
+        setBusy(false);
+        setWaiting(false);
+      }),
+    [],
+  );
+  useEffect(() => {
+    invoke("open_postmod")
+      .then((c) => {
+        setCap(c);
+        setBusy(false);
+      })
+      .catch((e) => {
+        setError(e.message);
+        setBusy(false);
+      });
+  }, []);
+  useEffect(() => {
+    if (!waiting) return;
+    const timer = setTimeout(() => {
+      setWaiting(false);
+      setBusy(false);
+      setError(
+        "No panel result received yet. Check the ChatGPT conversation. A completed request may open a refreshed panel. Do not repeat a test run merely because this panel is waiting.",
+      );
+    }, 90000);
+    return () => clearTimeout(timer);
+  }, [waiting]);
+  async function ask(action: string, selection: Record<string, unknown>) {
+    setError("");
+    setBusy(true);
+    setWaiting(true);
+    try {
+      await requestPostman(action, selection);
+    } catch (e) {
+      setError((e as Error).message);
+      setBusy(false);
+      setWaiting(false);
+    }
+  }
   async function load(id: string) {
     setWorkspace(id);
     setData(undefined);
     setJob(undefined);
-    setSource("all");
     setEnv("");
     setEnvironments([]);
+    setSource("all");
     setConfirm(false);
-    setError("");
-    if (!id) return;
-    setBusy(true);
-    try {
-      const channels = await invoke("get_workspace_channels", {
-        workspaceId: id,
-      });
-      setEnvironments(channels.environments);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
+    if (id)
+      await ask(
+        "Read this workspace's environments using getWorkspace or the available environment listing tool. Do not scan collections yet.",
+        { workspaceId: id, environmentId: "", source: "all" },
+      );
   }
   async function tune(value: string) {
     setEnv(value);
@@ -108,85 +158,24 @@ function Panel() {
     setJob(undefined);
     setSource("all");
     setConfirm(false);
-    setError("");
-    if (!value || !workspace) return;
-    setBusy(true);
-    try {
-      const s = await invoke("get_workspace_summary", {
-        workspaceId: workspace,
-      });
-      setData(s);
-      if ((s.latestRun?.environmentId ?? "none") === value) setJob(s.latestRun);
-      void shareContext({
-        workspaceId: workspace,
-        environmentId: value === "none" ? null : value,
-      }).catch(() => {});
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
+    if (value && workspace)
+      await ask(
+        "Read collections and coverage metadata for this workspace using available Postman tools. Get full collections as needed for inherited pre-request and post-response script counts. Unknown spec/script coverage stays null. Do not run tests.",
+        { workspaceId: workspace, environmentId: value, source: "all" },
+      );
   }
-  useEffect(() => {
-    invoke("open_postmod")
-      .then((c) => {
-        setCap(c);
-        setConnectionFailed(false);
-        setBusy(false);
-      })
-      .catch((e) => {
-        setConnectionFailed(true);
-        setError(e.message);
-        setBusy(false);
-      });
-  }, []);
-  useEffect(() => {
-    if (!job || job.state !== "running") return;
-    let gone = false;
-    let timer: ReturnType<typeof setTimeout>;
-    const poll = async () => {
-      try {
-        const j = await invoke("get_run_status", { runId: job.id });
-        if (!gone) {
-          setJob(j);
-          if (j.state === "running") timer = setTimeout(poll, 200);
-          else
-            void shareContext({ workspaceId: workspace, run: j }).catch(
-              () => {},
-            );
-        }
-      } catch (e) {
-        if (!gone) {
-          setError((e as Error).message);
-          timer = setTimeout(poll, 3000);
-        }
-      }
-    };
-    timer = setTimeout(poll, 100);
-    return () => {
-      gone = true;
-      clearTimeout(timer);
-    };
-  }, [job?.id, job?.state]);
   async function run() {
     if (!data || !workspace || !env) return;
-    setBusy(true);
-    setError("");
     setConfirm(false);
-    try {
-      const j = await invoke("start_workspace_run", {
+    await ask(
+      "Run tests once for exactly these collections and environment using the connected Postman execution tool. This is my explicit execution request. Return actual run results; omit endpoint data if unavailable.",
+      {
         workspaceId: workspace,
+        environmentId: env,
+        source,
         collectionIds: selected,
-        environmentId: env === "none" ? undefined : env,
-        confirmed: true,
-        requestId: crypto.randomUUID(),
-      });
-      setJob(j);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
+      },
+    );
   }
   const workspaceOptions: { id: string; name: string }[] = [
     { id: "", name: "Dial in a workspace" },
@@ -285,18 +274,20 @@ function Panel() {
             role="status"
             title={
               connectionFailed
-                ? "Postman connection failed. Check server credentials and restart."
-                : cap
-                  ? "Connected using the server’s API key; account email is not verified."
+                ? "Connect Postman in ChatGPT and load your workspaces."
+                : cap?.connected
+                  ? "Postman metadata was supplied by ChatGPT; this is not a live OAuth session check."
                   : "Checking Postman connection"
             }
           >
             <i />
             {connectionFailed
               ? "NOT CONNECTED"
-              : cap
-                ? "POSTMAN · API KEY"
-                : "CONNECTING"}
+              : cap?.connected
+                ? "POSTMAN VIA CHATGPT"
+                : embedded
+                  ? "LOAD POSTMAN"
+                  : "OPEN IN CHATGPT"}
           </span>
           <button
             className="icon"
@@ -332,9 +323,9 @@ function Panel() {
           </div>
           <strong>Postman connection</strong>
           <p>
-            {cap
-              ? "Connected to Postman using the server’s configured API key. Access follows that account’s permissions."
-              : "Configure POSTMAN_API_KEY in the server’s .env file and restart to connect your Postman account."}
+            Enable the Postman plugin in this ChatGPT conversation and connect
+            your own account there. Postmod never receives your Postman
+            credentials.
           </p>
         </aside>
       )}
@@ -346,6 +337,26 @@ function Panel() {
           </button>
         </div>
       )}
+      <div className="host-connection">
+        <button
+          disabled={busy}
+          onClick={() =>
+            void ask(
+              "Call getWorkspaces and return the real accessible workspaces. Set canRun only if a connected Postman execution tool is available. Leave workspace and environment unselected.",
+              {},
+            )
+          }
+        >
+          Load workspaces from Postman
+        </button>
+        <span>
+          {waiting
+            ? "Waiting for ChatGPT · check the conversation"
+            : embedded
+              ? "Uses your Postman connection in ChatGPT"
+              : "Open in ChatGPT with Postman enabled"}
+        </span>
+      </div>
       <section className="tuner" aria-label="Signal tuner">
         <div
           className={`tuner-lcd ${data ? "locked" : ""}`}
@@ -426,7 +437,7 @@ function Panel() {
           </div>
           <div className="lcd-bottomline">
             {busy
-              ? "Acquiring signal…"
+              ? "Waiting for ChatGPT’s Postman result…"
               : !workspace
                 ? "Turn the workspace dial to begin."
                 : !env
@@ -574,6 +585,24 @@ function Panel() {
                   ? "Ready when you are."
                   : "Not tuned"}
           </strong>
+          {job?.state === "running" && (
+            <button
+              disabled={busy}
+              onClick={() =>
+                void ask(
+                  "Read status of this existing Postman run. Do not execute or rerun any collection.",
+                  {
+                    workspaceId: workspace,
+                    environmentId: env,
+                    source,
+                    runId: job.id,
+                  },
+                )
+              }
+            >
+              Refresh run status
+            </button>
+          )}
           {scopedJob && (
             <span>
               {finished}/{scopedJob.rows.length} collections · {passed} passed ·{" "}
@@ -635,8 +664,8 @@ function Panel() {
       </section>
       {!cap?.canRun && cap && (
         <div className="notice">
-          This Postman connection cannot provide executable collections.
-          Workspace inspection is available.
+          Postman execution capability has not been confirmed by ChatGPT.
+          Workspace inspection may still be available.
         </div>
       )}
       {confirm && (
@@ -685,7 +714,7 @@ function Panel() {
                 {c.error ??
                   `${c.pre ?? "Unknown"} requests with pre-request scripts · ${c.tests ?? "Unknown"} with post-response tests`}
               </p>
-              {cap?.mode === "live" && (
+              {cap?.connected && (
                 <a
                   href={`https://go.postman.co/collection/${encodeURIComponent(c.id)}`}
                   target="_blank"
@@ -700,7 +729,14 @@ function Panel() {
       )}
       <footer>
         <span>
-          POSTMOD <b> / </b> By @quintonwall
+          POSTMOD <b> / </b> By{" "}
+          <a
+            href="https://quintonwall.com"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            @quintonwall
+          </a>
         </span>
         <span>
           {data

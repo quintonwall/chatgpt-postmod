@@ -1,0 +1,112 @@
+import { z } from "zod";
+const ref = z.object({ id: z.string(), name: z.string() });
+const count = z.number().int().nonnegative();
+const states = z.enum([
+  "queued",
+  "running",
+  "passed",
+  "failed",
+  "error",
+  "no-tests",
+  "interrupted",
+]);
+const endpoint = z.object({
+  id: z.string(),
+  name: z.string(),
+  method: z.string(),
+  state: states,
+  passed: count,
+  failed: count,
+  skipped: count,
+  statusCode: count.optional(),
+  durationMs: z.number().nonnegative().optional(),
+  error: z.string().optional(),
+});
+export const snapshotSchema = z
+  .object({
+    requestId: z.string().optional(),
+    workspaces: z.array(ref).max(1000),
+    connected: z.boolean(),
+    canRun: z.boolean(),
+    workspaceId: z.string().default(""),
+    environmentId: z.string().default(""),
+    source: z.string().default("all"),
+    environments: z.array(ref).max(1000).default([]),
+    summary: z
+      .object({
+        workspace: ref,
+        environments: z.array(ref),
+        collections: z
+          .array(
+            ref.extend({
+              requests: count.nullable(),
+              pre: count.nullable(),
+              tests: count.nullable(),
+              spec: z.boolean().nullable(),
+              error: z.string().optional(),
+            }),
+          )
+          .max(1000),
+        updatedAt: z.string(),
+        warnings: z.array(z.string()),
+        mode: z.literal("host"),
+      })
+      .optional(),
+    job: z
+      .object({
+        id: z.string(),
+        requestId: z.string(),
+        workspaceId: z.string(),
+        environmentId: z.string().optional(),
+        mode: z.literal("host"),
+        state: z.enum(["running", "completed", "interrupted"]),
+        rows: z.array(
+          ref.extend({
+            state: states,
+            passed: count.optional(),
+            failed: count.optional(),
+            error: z.string().optional(),
+            endpoints: z.array(endpoint).optional(),
+          }),
+        ),
+        createdAt: z.string(),
+      })
+      .optional(),
+    error: z.string().optional(),
+  })
+  .superRefine((s, ctx) => {
+    if (
+      s.summary &&
+      (!s.workspaceId ||
+        !s.environmentId ||
+        s.summary.workspace.id !== s.workspaceId)
+    )
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "Summary requires a matching selected workspace and an explicitly selected environment (none is allowed).",
+      });
+    if (
+      s.job &&
+      (s.job.workspaceId !== s.workspaceId ||
+        (s.job.environmentId ?? "none") !== s.environmentId)
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Run must match the selected workspace and environment.",
+      });
+  });
+export type Snapshot = z.infer<typeof snapshotSchema>;
+export const emptySnapshot: Snapshot = {
+  workspaces: [],
+  connected: false,
+  canRun: false,
+  workspaceId: "",
+  environmentId: "",
+  source: "all",
+  environments: [],
+};
+export function renderSnapshot(input: unknown) {
+  return { mode: "host", ...snapshotSchema.parse(input) };
+}
+export const hostInstructions = `Postmod is a display for the user's separately connected Postman plugin. You, the host assistant, must call that plugin's tools using the user's existing authorization. Postmod has no Postman credentials. For initial discovery use getWorkspaces and paginate as needed. Use available workspace/environment/collection read tools for selected IDs. Return only observed normalized metadata via render_postmod; never tokens, variables, request bodies, or secrets. Unknown metrics must be null, not zero. Preserve all workspaces and selected IDs in each complete snapshot. Set mode host on summary/jobs. Use environmentId none for explicitly selected no-environment. Never invent data or endpoint progress. Set canRun true only if an actual connected execution tool is available. Execute only following explicit user intent for the stated collection IDs/environment; never rerun a write to refresh status. If a tool or authorization is unavailable, return connected false or an actionable error and explain in chat. Correlate dial requests with the exact requestId. A result may open a new panel instance; full snapshots must restore selection. Postmod does not itself execute the actions described by its render tools.`;

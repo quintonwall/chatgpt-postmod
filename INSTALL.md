@@ -1,116 +1,160 @@
-# Install Postmod with real Postman data
+# Deploy Postmod on Vercel
 
-Verified against official documentation on October 3, 2026.
+This guide is for the person hosting Postmod. For connecting Postman and installing/using the extension in ChatGPT, see [README.md](README.md).
 
-Postmod is a local, single-user server with a ChatGPT Plugin Extension UI. **Local means the server runs on your computer; live mode uses real Postman data.** The archive includes the server, source, built UI, dependency lockfile, and local MCP plugin manifest. It is not a hosted service or a one-click OAuth-enabled public plugin.
+## What Vercel runs
 
-## 1. Start the server with your Postman account
+One project serves:
 
-Requirements: Node.js 22+, npm, and a Postman API key belonging to the account that can access your intended workspaces. Obtain the key through Postman's account settings. Keep it on your machine; do not paste it into chat or the plugin manifest.
+- The React/Vite UI build in `dist`.
+- A stateless Node MCP function at `/api/mcp`, implemented in `api/mcp.ts` and `server/app.ts`.
 
-Extract the ZIP, open a terminal in the extracted folder, then run:
+The MCP function exposes `open_postmod` and `render_postmod`, validates supplied snapshots, and serves `ui://postmod/panel.html`. It does **not** call Postman, execute collections, store account credentials, or maintain user jobs. ChatGPT performs Postman actions using each user's separately connected Postman plugin.
+
+No Postman API key, OAuth callback, token database, or shared Postman account belongs in this Vercel deployment.
+
+## Prerequisites
+
+- The current repository connected to your Vercel project.
+- Node.js 22 or a compatible newer Vercel-supported version.
+- Permission to deploy the project and configure its public endpoint.
+- A ChatGPT account with developer-mode permission for installation testing.
+
+## 1. Configure the project
+
+Use these Vercel settings:
+
+| Setting | Value |
+| --- | --- |
+| Root Directory | Repository root (`.`), not a `web` directory |
+| Framework Preset | Vite, not Next.js |
+| Install Command | `npm ci` |
+| Build Command | `npm run build` |
+| Output Directory | `dist` |
+| Node.js Version | 22 or compatible newer supported version |
+
+The included `vercel.json` declares the Vite build and the MCP function's 30-second maximum duration. It includes `dist/index.html` in the function bundle because MCP serves that built UI resource.
+
+The build bundles JavaScript and CSS into the MCP HTML resource and type-checks the source. No separate UI deployment is necessary.
+
+### Environment variables
+
+**None are required for Postman authentication.** If earlier setup instructions led you to add `POSTMAN_API_KEY`, `POSTMOD_MODE`, or user OAuth tokens to Vercel, remove them from this project. Never expose credentials through `VITE_*` variables.
+
+`PORT` is only used by the local development server; Vercel manages the hosted function's listener. A Vercel account login has no relationship to a user's Postman authorization.
+
+## 2. Build and deploy
+
+Optionally validate locally first:
 
 ```sh
 npm ci
-cp .env.example .env
+npm run build
+npm test
 ```
 
-Edit `.env` locally:
+Commit and push the current files through your connected repository workflow, or deploy through your established Vercel process. Ensure the deployment includes:
 
-```dotenv
-POSTMAN_API_KEY=your_key_here
-POSTMAN_MCP_URL=https://mcp.postman.com/mcp
-PORT=4310
+```text
+api/mcp.ts
+server/app.ts
+server/host-contract.ts
+src/
+scripts/inline.mjs
+package.json
+package-lock.json
+vercel.json
 ```
 
-For an EU Postman account use `https://mcp.eu.postman.com/mcp`. Use the region that holds your data. Start Postmod:
+Do not set the Vercel start command to `npm start`. That command starts the loopback Express server for local development; the hosted entry point is the function export in `api/mcp.ts`.
+
+After deployment, record a stable HTTPS production domain. The connection URL is:
+
+```text
+https://YOUR-POSTMOD-DOMAIN/api/mcp
+```
+
+The root URL displays the standalone shell. It cannot access a user's ChatGPT-connected Postman tools, so opening the homepage alone is not an integration test.
+
+[Vercel's MCP deployment documentation](https://vercel.com/docs/mcp/deploy-mcp-servers-to-vercel).
+
+## 3. Verify the MCP endpoint
+
+Start MCP Inspector:
 
 ```sh
-npm start
+npx @modelcontextprotocol/inspector@latest
 ```
 
-Open `http://127.0.0.1:4310`. The header shows **POSTMAN · API KEY** after connection succeeds, or **NOT CONNECTED** if credentials are absent or rejected. Turn the workspace dial, then the environment dial. The collection dial defaults to all collections. “No environment” is an explicit option for collection defaults. Nothing is scanned until workspace and environment are selected. Missing access or unreadable data is reported rather than replaced with synthetic data.
+Using the inspector's local instructions/token, connect via **Streamable HTTP** to your deployed `/api/mcp` URL. Verify:
 
-The supplied build is already compiled. After changing source files, run `npm run build` and refresh. Restart the server after changing `.env`.
+1. Initialization succeeds.
+2. Tools include only `open_postmod` and `render_postmod`.
+3. Calling `open_postmod` with `{}` returns an empty, disconnected snapshot—not demo data.
+4. Reading `ui://postmod/panel.html` returns the bundled HTML.
+5. Independent calls do not retain a previous caller's snapshot.
 
-In live mode, Run tests opens a confirmation before sending actual API requests. The bundled Newman runtime executes collection snapshots obtained through Postman MCP. Runs can mutate your target API; no reports are uploaded to Postman. The switch returns to idle when the run completes. There is no demo mode or synthetic fallback.
+The implementation accepts MCP POST requests. Opening `/api/mcp` in a browser with GET is not a substitute for the protocol test.
 
-## 2. Connect Postmod to ChatGPT
+ChatGPT must be able to reach this endpoint without an interactive Vercel login page. Review Deployment Protection for the domain you register and configure access according to your policy. The renderer has no private-account access; nevertheless, do not log supplied snapshot bodies or credentials, and apply hosting rate limits as appropriate.
 
-ChatGPT must reach **Postmod's `/mcp` endpoint**, not just Postman's endpoint. A web/cloud ChatGPT client cannot reach your computer by entering `127.0.0.1` as a public URL.
+## 4. Register the plugin and validate real use
 
-For this single-user build, use a private Secure MCP Tunnel if your account/workspace has access. Keep it restricted to your own testing identity: all calls use this server's one Postman API key. Do not share that connection with other users. The server intentionally accepts only loopback hosts and same-origin browser requests; do not remove those checks to expose it publicly.
+Follow [README.md → Add Postmod to ChatGPT](README.md#2-add-postmod-to-chatgpt), giving users the deployed `/api/mcp` URL. Postmod's renderer uses no authentication. Each user independently connects the **Postman** plugin through OAuth in ChatGPT and enables both plugins in the same conversation.
 
-1. In OpenAI Platform tunnel settings, create a tunnel associated with the intended ChatGPT workspace. Obtain the tunnel identity and runtime credentials. You need tunnel permissions as well as ChatGPT developer-mode access.
-2. Obtain `tunnel-client` using the download link in the official setup guide. Run `tunnel-client help quickstart`, configure an HTTP profile targeting `http://127.0.0.1:4310/mcp`, and use your issued tunnel ID. Use `--mcp-server-url` for this HTTP target, not a stdio command. Supply runtime credentials through the documented environment/configuration mechanism, never in this package.
-3. Run `tunnel-client doctor --profile postmod --explain`, then `tunnel-client run --profile postmod`. Keep both the tunnel client and Postmod server running. If you named the profile differently, substitute its name.
+Test these before sharing the deployment:
 
-Follow the current [Secure MCP Tunnel setup reference](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) for account-specific profile initialization. Tunnel access is not universally available; if unavailable, this build remains usable locally until an authenticated hosted deployment is implemented.
+- Two independent ChatGPT users receive only their own Postman-accessible workspaces.
+- Workspace and environment requests result in genuine Postman calls, followed by a Postmod render snapshot.
+- Selection is restored when the host opens a new panel instead of updating the old iframe.
+- Unsupported tools, unknown coverage, and authorization failures appear explicitly.
+- A safe, explicitly approved test runs once, and status refresh does not re-execute it.
 
-4. In ChatGPT, enable **Settings → Security and login → Developer mode**.
-5. Open **Plugins**, select **+**, name the connection Postmod, and choose **Tunnel**. Select the configured tunnel or enter its ID.
-6. Create the connection and review the discovered tools: `open_postmod`, `get_workspace_channels`, `get_workspace_summary`, `start_workspace_run`, and `get_run_status`.
-7. Install the resulting personal plugin where offered, start a new Work chat with it enabled, and ask “Open Postmod.” The server advertises sidebar and conversation-panel entrypoints; availability depends on the host.
-8. Verify the live connection badge and dial into a workspace you recognize before testing execution.
+Local tests pass, but this repository has not been verified against your deployed Vercel project or your ChatGPT/Postman accounts. Public directory distribution is a separate submission/review process; the README describes personal developer-mode installation.
 
-After server/tool changes, restart Postmod and use **Refresh** on the ChatGPT connection, then start a new conversation. See [Connect and test](https://developers.openai.com/plugins/deploy/connect-chatgpt) and the [plugin quickstart](https://developers.openai.com/plugins/quickstart).
+[OpenAI's connection and test guide](https://developers.openai.com/plugins/deploy/connect-chatgpt).
 
-This flow has not been verified against your ChatGPT account or a private Postman workspace. The archive alone cannot create the account-specific tunnel or ChatGPT registration.
+## 5. Updates and packaging
 
-### Optional desktop package registration
+For later changes:
 
-`plugins/postmod/` is a validated compatibility-format plugin for local HTTP MCP clients. Its `.mcp.json` points to loopback and does not start the server. Keep the server running separately.
+1. Run the build and tests.
+2. Push/redeploy.
+3. Check the deployed MCP resource and tools.
+4. Refresh the Postmod connection's metadata in ChatGPT and start a new conversation.
 
-For a ChatGPT desktop local-marketplace package, first complete the registered connection above. Copy its technical `plugin_asdk_app...` ID from the connection URL. Invoke Plugin Creator with:
-
-> Create a personal-marketplace Postmod plugin from the bundled plugins/postmod folder, using my registered Postmod connection ID. Wire that registered connection through .app.json instead of adding a second loopback connection. Preserve the Postmod branding.
-
-Supply the actual ID; none is fabricated in this archive. Then install from that local source in the Plugins Directory and open a new chat. [Official packaging instructions](https://developers.openai.com/plugins/build/plugins) explain this registered-connection mapping. Do not assume uploading a ZIP installs the backend.
-
-## 3. Postman MCP OAuth: what works and what still needs integration
-
-Postman's US remote MCP supports OAuth with automatic discovery, dynamic client registration, and PKCE. Its EU remote and local servers currently require API keys. Full mode uses `/mcp`. [Postman remote server documentation](https://learning.postman.com/docs/reference/postman-api/postman-mcp-server/postman-mcp-remote-server).
-
-To connect **Postman directly** in an OAuth-capable MCP host:
-
-1. Add `https://mcp.postman.com/mcp` as the server URL.
-2. Choose OAuth if prompted; omit a manually supplied Authorization header. Let the host discover the authorization endpoints rather than inventing client IDs or callback URLs.
-3. Complete the Postman sign-in/SSO flow for the account with access to your organization. Review and approve the requested access.
-4. Return to the host and verify that listing workspaces returns the expected account's resources. If policy blocks consent, contact your Postman administrator.
-
-A host configuration commonly looks like:
-
-```json
-{"mcpServers":{"postman":{"url":"https://mcp.postman.com/mcp"}}}
-```
-
-**That authorizes the host's Postman connection, not Postmod.** This package's backend creates its own MCP client and currently sends `POSTMAN_API_KEY`. It has no OAuth callback, token persistence/refresh, per-user session, or account-switching implementation. Do not copy a host's OAuth token into `.env` as an API key.
-
-For a future OAuth-enabled Postmod release, implement the backend's upstream OAuth client using discovery/PKCE, bind state to the initiating session, store tokens securely, refresh/revoke them, and isolate each user's data and jobs. A publicly hosted server also needs its own authenticated ChatGPT-to-Postmod boundary; upstream Postman OAuth alone does not provide that. These are engineering steps, not installation settings.
-
-## 4. Connection indicator and account identity
-
-The header now distinguishes:
-
-- **CONNECTING:** initial connection check in progress.
-- **POSTMAN · API KEY:** startup discovery succeeded using server credentials; this does not identify the ChatGPT user.
-- **NOT CONNECTED:** initial connection failed; inspect the error and server settings.
-
-This is a startup connection indicator, not continuous session monitoring. Later tool errors appear in the panel. An email would be useful in an account menu once returned by a verified Postman identity endpoint/OAuth identity flow. Do not use a configured label, the ChatGPT email, or a workspace name as proof of the Postman account. This build intentionally does not invent an email or show a sign-out button that cannot revoke authentication.
-
-## Troubleshooting and release boundaries
-
-- No credentials: the panel stays disconnected and empty until POSTMAN_API_KEY is configured. POSTMOD_MODE is no longer used.
-- Connection error: verify key, account access, region, and network. Never share the key in screenshots or logs.
-- No workspaces: check membership and account permissions. Authentication does not grant additional organization access.
-- Tunnel absent: verify workspace association, tunnel role, and developer-mode permission. Host/origin rejection: inspect tunnel forwarding locally; do not disable the guard or publish this server unauthenticated.
-- Switch unavailable: finish tuning first; live execution also requires collection-read capability.
-- Known runner dependency advisories remain; see README. Review them before broader distribution. There is no multi-user isolation, hosted OAuth, or public-store approval in this release.
-
-## Rebuild the package
+To create a source/build archive:
 
 ```sh
 npm run package
 ```
 
-Requires the `zip` command. This builds, runs tests, and produces a ZIP plus SHA-256 file under `releases/`. It includes `CONTENTS.sha256` for the packaged files. `.env`, `node_modules`, saved runs, Git history, and account credentials are excluded by an explicit file allowlist.
+This also runs verification and writes a ZIP and SHA-256 checksum under `releases/`. It requires the `zip` command. The archive includes this guide, README, Vercel configuration, plugin skill, source, and built UI. Credentials, dependencies, saved runs, and Git history are excluded. The archive's `local` suffix means it was built locally; Vercel deployment does not require end users to run a local server.
+
+## Local development
+
+```sh
+npm ci
+npm run build
+npm start
+```
+
+- UI: `http://127.0.0.1:4310`
+- Local MCP: `http://127.0.0.1:4310/mcp`
+- No Postman credentials required.
+
+The local shell has no access to ChatGPT's connectors. Use a compatible host to test message-driven actions. Legacy runner utilities remain only for regression tests; they are not imported by the deployed renderer. Their dependency tree still contains known upstream advisories and is not the production test-execution path.
+
+## Deployment troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| `/api/mcp` returns 404 | Correct root directory; `api/mcp.ts` and `vercel.json` included; inspect build output for the function |
+| Inspector receives HTML | Wrong endpoint, deployment login page, or an overly broad rewrite to `index.html` |
+| MCP UI resource fails | Confirm `npm run build` completed and `dist/index.html` is included in the function bundle |
+| Homepage loads but cannot connect Postman | Expected outside ChatGPT; enable both plugins in a host conversation |
+| Old API-key instructions appear | Deploy current code, refresh ChatGPT metadata, start a new chat |
+| Panel waits after a dial action | Inspect the chat for tool availability, approvals, errors, or a refreshed panel |
+| Everyone sees the same data | Verify the host is using each user's own Postman connection and has not reused a stale supplied snapshot |
+
+Postmod does not persist snapshots. Metadata still passes through the rendering function and conversation; their platform retention policies apply. Only send the metadata and sanitized test results needed by the panel.

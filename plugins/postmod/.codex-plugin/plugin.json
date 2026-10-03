@@ -1,19 +1,20 @@
 {
   "name": "postmod",
   "version": "0.1.0",
-  "description": "A compact Postman workspace control panel with coverage meters and test runs.",
+  "description": "A stereo-inspired renderer for your connected Postman tools in ChatGPT.",
   "author": {
     "name": "Quinton Wall"
   },
   "interface": {
     "displayName": "Postmod",
     "shortDescription": "Your Postman workspace, in tune.",
-    "longDescription": "Inspect workspace collections, OpenAPI links, script and test presence, and execute collections from an amplifier-inspired control panel.",
+    "longDescription": "Dial into Postman workspaces using ChatGPT\u2019s existing Postman connection. Postmod displays real metadata and test results without storing Postman credentials.",
     "developerName": "Quinton Wall",
     "category": "Productivity",
     "capabilities": [],
     "defaultPrompt": "Open Postmod and summarize my Postman workspace.",
     "brandColor": "#E89553"
   },
-  "mcpServers": "./.mcp.json"
+  "mcpServers": "./.mcp.json",
+  "skills": "./skills/"
 }

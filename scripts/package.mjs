@@ -34,6 +34,8 @@ const files = [
   "tests",
   "docs",
   "plugins",
+  "api",
+  "vercel.json",
   "dist",
 ];
 try {
