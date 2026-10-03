@@ -1,4 +1,4 @@
-import { inventoryInstructions } from "./workspace-discovery";
+import { inventoryInstructions } from "./workspace-discovery.ts";
 import { z } from "zod";
 const ref = z.object({ id: z.string(), name: z.string() });
 const count = z.number().int().nonnegative();
