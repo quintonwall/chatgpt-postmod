@@ -33,11 +33,12 @@ Start a new Work chat with **both Postman and Postmod enabled**, then ask:
 
 > Use Postman's getWorkspaces, then open Postmod with my workspaces.
 
-Turn the **Workspace** dial, then click **Load environments**. Choose an **Environment** (or **No environment**), then click **Load collections**. Dial movements stay local; only the load buttons request data from ChatGPT. The **Collections** dial starts on **All collections** and filters the loaded data locally.
+Postmod preloads each workspace's environment and collection names when it opens. Turn the **Workspace** dial to immediately populate the **Environment** and **Collections** dials. Browse either in any order; choose an environment (or **No environment**) before running tests. All dial movements stay local, with no load buttons or ChatGPT requests. Initial discovery may take longer for accounts with many workspaces. Coverage remains unknown until collection details have been inspected; ask ChatGPT to inspect coverage when needed.
 
 ## Using Postmod
 
-- **Dials:** drag, use +/−, or use keyboard arrows to choose locally. Click a load button when ready. ChatGPT fetches Postman data only for that request; its result may open a refreshed panel.
+- **Power:** press **Power on** to discover your Postman workspaces, or **Power cycle** to fetch fresh workspace, environment, and collection lists. This resets the dial selections and does not run tests.
+- **Dials:** drag, use +/−, or use keyboard arrows. Environment and collection choices update immediately from the selected workspace's preloaded catalog.
 - **Meters:** inspect OpenAPI links and script/test presence. Unknown values remain unknown; these aren't code-coverage measurements.
 - **Run tests:** choose your scope, activate the switch, then confirm. Actual requests may change API data. Execution requires a supported Postman tool.
 - **Equalizer:** shows real endpoint results when provided. A final-summary-only response cannot supply live animation.

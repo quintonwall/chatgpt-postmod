@@ -1816,21 +1816,6 @@ footer > span:first-child {
   font-size: 8px;
   opacity: 0.5;
 }
-.tuner-load {
-  width: 100%;
-  max-width: 180px;
-  min-height: 40px;
-  padding: 8px;
-  border: 1px solid #89946c;
-  border-radius: 6px;
-  background: #303827;
-  color: #e8eadf;
-  font-size: 12px;
-}
-.tuner-load:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
 .tuner-help {
   margin: 0;
   max-width: 200px;
@@ -2112,15 +2097,88 @@ footer > span:first-child {
 }
 
 .host-connection {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 12px 20px;
   margin-top: 14px;
+  padding: 18px 14px 12px;
+  border-top: 1px solid #ffffff12;
+  border-bottom: 1px solid #0008;
+  background: linear-gradient(180deg, #ffffff03, #00000012);
+}
+.amplifier-vent {
+  height: 42px;
+  min-width: 0;
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    90deg,
+    #0c100c 0 4px,
+    #080b08 4px 6px,
+    #ffffff12 6px 7px,
+    transparent 7px 12px
+  );
+  box-shadow: inset 0 2px 4px #0009;
+  pointer-events: none;
 }
 .host-connection span {
   font: 10px monospace;
   color: #a4ad91;
+}
+.receiver-power {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 14px 8px 8px;
+  border: 1px solid #626858;
+  border-radius: 26px 6px 6px 26px;
+  background: linear-gradient(#41463c, #22261f);
+  box-shadow:
+    inset 0 1px 1px #ffffff24,
+    0 3px 5px #0008;
+  cursor: pointer;
+}
+.receiver-power svg {
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  border-radius: 50%;
+  border: 1px solid #747b68;
+  background: #181d16;
+  stroke: #a4ad91;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.receiver-power.is-on svg {
+  stroke: #c8ed92;
+  border-color: #a3bc7a;
+  box-shadow:
+    0 0 8px #a3cc7040,
+    inset 0 0 6px #a3cc7020;
+}
+.receiver-power:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px #0008;
+}
+.receiver-power:focus-visible {
+  outline: 2px solid #e9b681;
+  outline-offset: 4px;
+}
+.receiver-power:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.host-connection > .power-status {
+  grid-column: 1 / -1;
+  text-align: center;
+  line-height: 1.6;
+}
+@media (max-width: 480px) {
+  .host-connection {
+    column-gap: 12px;
+    padding-inline: 6px;
+  }
 }
 
 footer a {

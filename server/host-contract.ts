@@ -1,6 +1,13 @@
 import { z } from "zod";
 const ref = z.object({ id: z.string(), name: z.string() });
 const count = z.number().int().nonnegative();
+const collection = ref.extend({
+  requests: count.nullable().default(null),
+  pre: count.nullable().default(null),
+  tests: count.nullable().default(null),
+  spec: z.boolean().nullable().default(null),
+  error: z.string().optional(),
+});
 const states = z.enum([
   "queued",
   "running",
@@ -26,6 +33,18 @@ export const snapshotSchema = z
   .object({
     requestId: z.string().optional(),
     workspaces: z.array(ref).max(1000),
+    catalogs: z
+      .array(
+        z.object({
+          workspaceId: z.string(),
+          environments: z.array(ref).max(1000),
+          collections: z.array(collection).max(1000),
+          updatedAt: z.string().optional(),
+          error: z.string().optional(),
+        }),
+      )
+      .max(1000)
+      .default([]),
     connected: z.boolean(),
     canRun: z.boolean(),
     workspaceId: z.string().default(""),
@@ -99,6 +118,7 @@ export const snapshotSchema = z
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export const emptySnapshot: Snapshot = {
   workspaces: [],
+  catalogs: [],
   connected: false,
   canRun: false,
   workspaceId: "",
@@ -109,4 +129,4 @@ export const emptySnapshot: Snapshot = {
 export function renderSnapshot(input: unknown) {
   return { mode: "host", ...snapshotSchema.parse(input) };
 }
-export const hostInstructions = `Postmod is a display for the user's separately connected Postman plugin. You, the host assistant, must call that plugin's tools using the user's existing authorization. Postmod has no Postman credentials. For initial discovery use getWorkspaces and paginate as needed. Use available workspace/environment/collection read tools for selected IDs. Return only observed normalized metadata via render_postmod; never tokens, variables, request bodies, or secrets. Unknown metrics must be null, not zero. Preserve all workspaces and selected IDs in each complete snapshot. Set mode host on summary/jobs. Use environmentId none for explicitly selected no-environment. Never invent data or endpoint progress. Set canRun true only if an actual connected execution tool is available. Execute only following explicit user intent for the stated collection IDs/environment; never rerun a write to refresh status. If a tool or authorization is unavailable, return connected false or an actionable error and explain in chat. Correlate dial requests with the exact requestId. A result may open a new panel instance; full snapshots must restore selection. Postmod does not itself execute the actions described by its render tools.`;
+export const hostInstructions = `Postmod is a display for the user's separately connected Postman plugin. You, the host assistant, must call that plugin's tools using the user's existing authorization. Postmod has no Postman credentials. For initial discovery use getWorkspaces and paginate as needed. Before opening the panel, preload environment and collection IDs/names for every accessible workspace using available workspace detail or listing tools, paginating as needed. Include one catalogs entry per workspace with workspaceId, environments, and collections. Never read environment values. Only include coverage metrics already observed; omitted metrics default to null. Do not fetch full collection bodies merely to populate dials. If a workspace cannot be read, include its catalog with an actionable error; do not silently present unavailable data as an empty workspace. Preserve all catalogs on every subsequent render. Workspace, environment, and collection dials use this catalog locally and require no host request. Use available workspace/environment/collection read tools for selected IDs. Return only observed normalized metadata via render_postmod; never tokens, variables, request bodies, or secrets. Unknown metrics must be null, not zero. Preserve all workspaces and selected IDs in each complete snapshot. Set mode host on summary/jobs. Use environmentId none for explicitly selected no-environment. Never invent data or endpoint progress. Set canRun true only if an actual connected execution tool is available. Execute only following explicit user intent for the stated collection IDs/environment; never rerun a write to refresh status. If a tool or authorization is unavailable, return connected false or an actionable error and explain in chat. Correlate dial requests with the exact requestId. A result may open a new panel instance; full snapshots must restore selection. Postmod does not itself execute the actions described by its render tools.`;

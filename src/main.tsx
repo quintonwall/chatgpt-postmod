@@ -1,3 +1,5 @@
+import { workspaceData } from "./catalog";
+import type { Snapshot } from "../server/host-contract";
 import { Dial } from "./Dial";
 import { Equalizer } from "./Equalizer";
 import React, { useEffect, useState } from "react";
@@ -49,7 +51,7 @@ function Meter({
   );
 }
 function Panel() {
-  const [cap, setCap] = useState<any>();
+  const [cap, setCap] = useState<Snapshot>();
   const [connectionFailed, setConnectionFailed] = useState(false);
   const [data, setData] = useState<Summary>();
   const [workspace, setWorkspace] = useState("");
@@ -88,8 +90,9 @@ function Panel() {
         setWorkspace(snapshot.workspaceId);
         setEnv(snapshot.environmentId);
         setSource(snapshot.source);
-        setEnvironments(snapshot.environments);
-        setData(snapshot.summary);
+        const selectedData = workspaceData(snapshot, snapshot.workspaceId);
+        setEnvironments(selectedData?.environments ?? snapshot.environments);
+        setData(selectedData);
         setJob(snapshot.job);
         setError(snapshot.error ?? "");
         setConnectionFailed(!snapshot.connected);
@@ -133,33 +136,18 @@ function Panel() {
   }
   function selectWorkspace(id: string) {
     setWorkspace(id);
-    setData(undefined);
+    const selectedData = workspaceData(cap, id);
+    setData(selectedData);
     setJob(undefined);
     setEnv("");
-    setEnvironments([]);
+    setEnvironments(selectedData?.environments ?? []);
     setSource("all");
     setConfirm(false);
-  }
-  async function load(id: string) {
-    if (id)
-      await ask(
-        "Read this workspace's environments using getWorkspace or the available environment listing tool. Do not scan collections yet.",
-        { workspaceId: id, environmentId: "", source: "all" },
-      );
   }
   function selectEnvironment(value: string) {
     setEnv(value);
-    setData(undefined);
     setJob(undefined);
-    setSource("all");
     setConfirm(false);
-  }
-  async function tune(value: string) {
-    if (value && workspace)
-      await ask(
-        "Read collections and coverage metadata for this workspace using available Postman tools. Get full collections as needed for inherited pre-request and post-response script counts. Unknown spec/script coverage stays null. Do not run tests.",
-        { workspaceId: workspace, environmentId: value, source: "all" },
-      );
   }
   async function run() {
     if (!data || !workspace || !env) return;
@@ -327,24 +315,36 @@ function Panel() {
         </div>
       )}
       <div className="host-connection">
+        <div className="amplifier-vent" aria-hidden="true" />
         <button
-          disabled={busy}
+          className={`receiver-power ${hasWorkspaces ? "is-on" : ""}`}
+          disabled={busy || running}
+          aria-label={
+            hasWorkspaces
+              ? "Power cycle: fetch fresh Postman workspace, environment, and collection lists"
+              : "Power on: fetch Postman workspace, environment, and collection lists"
+          }
+          title="Fetch fresh workspace, environment, and collection lists from Postman"
           onClick={() =>
             void ask(
-              "Call getWorkspaces and return the real accessible workspaces. Set canRun only if a connected Postman execution tool is available. Leave workspace and environment unselected.",
+              "Perform a full fresh discovery: call getWorkspaces again, then fetch fresh environment and collection IDs/names for every accessible workspace into catalogs using available workspace detail or listing tools. Do not reuse previous catalogs or coverage summaries. Paginate as needed. Never read environment values or fetch full collections just for the dials. Include catalog errors for inaccessible workspaces. Set canRun only if a connected Postman execution tool is available. Leave workspace and environment unselected. Do not run tests.",
               {},
             )
           }
         >
-          {hasWorkspaces
-            ? "Refresh workspaces"
-            : "Load workspaces from Postman"}
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3v9M7 5.7a8 8 0 1 0 10 0" />
+          </svg>
+          <span>
+            {busy ? "TUNING" : hasWorkspaces ? "POWER CYCLE" : "POWER ON"}
+          </span>
         </button>
-        <span>
+        <div className="amplifier-vent" aria-hidden="true" />
+        <span className="power-status">
           {waiting
             ? "Waiting for ChatGPT · check the conversation"
             : hasWorkspaces
-              ? "Workspaces loaded from Postman · choose with the dials below"
+              ? "Ready · power cycle to fetch fresh workspace, environment, and collection lists"
               : embedded
                 ? "Uses your Postman connection in ChatGPT"
                 : "Open in ChatGPT with Postman enabled"}
@@ -434,12 +434,12 @@ function Panel() {
               : !workspace
                 ? "Turn the workspace dial to begin."
                 : !env
-                  ? "Load environments, then choose an environment or No environment."
+                  ? "Choose a collection and an environment, or No environment."
                   : data
                     ? source === "all"
                       ? `${allCollections.length} collections · workspace mix`
                       : "Single collection · focused signal"
-                    : "Selection ready · click Load collections to apply."}
+                    : "Workspace choices were not preloaded. Ask ChatGPT to reopen Postmod with workspace catalogs."}
           </div>
         </div>
         <div className="tuner-controls">
@@ -454,16 +454,7 @@ function Panel() {
               onChange={(i) => selectWorkspace(workspaceOptions[i].id)}
             />
             <small>01 / RECEIVE</small>
-            <button
-              className="tuner-load"
-              disabled={busy || running || !workspace}
-              onClick={() => void load(workspace)}
-            >
-              Load environments
-            </button>
-            <p className="tuner-help">
-              Choose a workspace, then load its environment options.
-            </p>
+            <p className="tuner-help">Workspace choices are preloaded.</p>
           </div>
           <div className="tuner-knob">
             <span>ENVIRONMENT</span>
@@ -476,15 +467,10 @@ function Panel() {
               onChange={(i) => changeEnvironment(environmentOptions[i].id)}
             />
             <small>02 / TUNE</small>
-            <button
-              className="tuner-load"
-              disabled={busy || running || !workspace || !env}
-              onClick={() => void tune(env)}
-            >
-              {data ? "Refresh collections" : "Load collections"}
-            </button>
             <p className="tuner-help">
-              Choose an environment or No environment, then load collections.
+              {workspace && data && !environments.length
+                ? "No environments available. Choose No environment."
+                : "Choose an environment or No environment."}
             </p>
           </div>
           <div className="tuner-knob">
@@ -500,7 +486,9 @@ function Panel() {
             <small>03 / INPUT</small>
             <p className="tuner-help" role="status">
               {!data
-                ? "Load collections using the button under Environment to enable this dial."
+                ? workspace
+                  ? "Workspace choices were not preloaded. Ask ChatGPT to reopen Postmod."
+                  : "Choose a workspace to browse its collections."
                 : allCollections.length
                   ? "Browse loaded collections. No extra loading needed."
                   : "No collections were returned for this workspace."}
@@ -508,7 +496,7 @@ function Panel() {
           </div>
         </div>
         <div className="tuner-bottom">
-          <span>TURN TO SELECT · CLICK TO LOAD</span>
+          <span>TURN TO SELECT · OPTIONS UPDATE INSTANTLY</span>
         </div>
       </section>
       {data && layout.meters && (
@@ -525,13 +513,18 @@ function Panel() {
             <div className="collection-count">
               {data
                 ? String(
-                    source === "all" ? collections.length : totals.requests,
+                    source === "all"
+                      ? collections.length
+                      : known.length
+                        ? totals.requests
+                        : "—",
                   ).padStart(2, "0")
                 : "—"}
               <span className="tiny-light" />
             </div>
             <p>
-              {totals.requests} requests <span> / {known.length} scanned</span>
+              {known.length ? totals.requests : "Unknown"} requests{" "}
+              <span> / {known.length} scanned</span>
             </p>
           </div>
           <Meter
@@ -542,12 +535,20 @@ function Panel() {
           />
           <Meter
             label="PRE-REQUEST"
-            value={pct(totals.pre, totals.requests)}
+            value={
+              collections.some((c) => c.pre === null || c.requests === null)
+                ? null
+                : pct(totals.pre, totals.requests)
+            }
             count={`${totals.pre}/${totals.requests} req${known.length < collections.length ? " · partial" : ""}`}
           />
           <Meter
             label="POST-RESPONSE TESTS"
-            value={pct(totals.tests, totals.requests)}
+            value={
+              collections.some((c) => c.tests === null || c.requests === null)
+                ? null
+                : pct(totals.tests, totals.requests)
+            }
             count={`${totals.tests}/${totals.requests} req${known.length < collections.length ? " · partial" : ""}`}
           />
           <div className="amp-footer">
@@ -752,9 +753,11 @@ function Panel() {
           </a>
         </span>
         <span>
-          {data
+          {data?.updatedAt
             ? "Updated " + new Date(data.updatedAt).toLocaleTimeString()
-            : "Awaiting connection"}
+            : data
+              ? "Workspace choices loaded"
+              : "Choose a workspace"}
           <span className="footer-dot">●</span>v0.1
         </span>
       </footer>
