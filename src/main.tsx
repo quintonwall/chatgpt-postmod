@@ -454,6 +454,16 @@ function Panel() {
               onChange={(i) => selectWorkspace(workspaceOptions[i].id)}
             />
             <small>01 / RECEIVE</small>
+            <button
+              className="tuner-load"
+              disabled={busy || running || !workspace}
+              onClick={() => void load(workspace)}
+            >
+              Load environments
+            </button>
+            <p className="tuner-help">
+              Choose a workspace, then load its environment options.
+            </p>
           </div>
           <div className="tuner-knob">
             <span>ENVIRONMENT</span>
@@ -466,6 +476,16 @@ function Panel() {
               onChange={(i) => changeEnvironment(environmentOptions[i].id)}
             />
             <small>02 / TUNE</small>
+            <button
+              className="tuner-load"
+              disabled={busy || running || !workspace || !env}
+              onClick={() => void tune(env)}
+            >
+              {data ? "Refresh collections" : "Load collections"}
+            </button>
+            <p className="tuner-help">
+              Choose an environment or No environment, then load collections.
+            </p>
           </div>
           <div className="tuner-knob">
             <span>COLLECTIONS</span>
@@ -478,21 +498,17 @@ function Panel() {
               onChange={(i) => changeSource(sourceOptions[i])}
             />
             <small>03 / INPUT</small>
+            <p className="tuner-help" role="status">
+              {!data
+                ? "Load collections using the button under Environment to enable this dial."
+                : allCollections.length
+                  ? "Browse loaded collections. No extra loading needed."
+                  : "No collections were returned for this workspace."}
+            </p>
           </div>
         </div>
         <div className="tuner-bottom">
           <span>TURN TO SELECT · CLICK TO LOAD</span>
-          <button
-            className="refresh"
-            disabled={busy || running || !workspace}
-            onClick={() => (env ? void tune(env) : void load(workspace))}
-          >
-            {env
-              ? data
-                ? "↻ Refresh collections"
-                : "Load collections"
-              : "Load environments"}
-          </button>
         </div>
       </section>
       {data && layout.meters && (

@@ -1816,6 +1816,29 @@ footer > span:first-child {
   font-size: 8px;
   opacity: 0.5;
 }
+.tuner-load {
+  width: 100%;
+  max-width: 180px;
+  min-height: 40px;
+  padding: 8px;
+  border: 1px solid #89946c;
+  border-radius: 6px;
+  background: #303827;
+  color: #e8eadf;
+  font-size: 12px;
+}
+.tuner-load:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.tuner-help {
+  margin: 0;
+  max-width: 200px;
+  color: #b3b7a3;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
 .tuner-bottom {
   display: flex;
   align-items: center;
