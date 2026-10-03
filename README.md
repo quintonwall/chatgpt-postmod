@@ -33,7 +33,7 @@ Start a new Work chat with **both Postman and Postmod enabled**, then ask:
 
 > Open Postmod with my connected Postman account. Preload environment and collection names for my workspaces, then open Postmod without asking me to choose first. Don’t run tests.
 
-ChatGPT preloads environment and collection names for your created workspaces , then opens Postmod without a workspace question. All three dials select locally. Dial changes never request new inventory or a new panel. Full collection bodies are not fetched for discovery, so coverage can remain unknown. If rate limited, discovery stops and reports unfinished workspace inventories instead of retrying or broadening the scan.
+ChatGPT preloads environment and collection names for your created workspaces , then opens Postmod without a workspace question. Workspace and environment dials select locally; collection selection requests details after a short pause. Collection selection requests details for that collection only. Full collection bodies are not fetched for discovery, so coverage can remain unknown. If rate limited, discovery stops and reports unfinished workspace inventories instead of retrying or broadening the scan.
 
 ## Using Postmod
 
@@ -56,3 +56,7 @@ Hosting your own copy? See [INSTALL.md](INSTALL.md) for Vercel deployment and ve
 By [@quintonwall](https://quintonwall.com).
 
 Workspace choices exclude organization-wide visibility alone. Discovery first resolves the current user and lists workspaces they created; this is labeled explicitly and is not a complete membership list. Only workspaces created by the current user are included. If a joined workspace is missing, provide its name or ID for a targeted membership check. Discovery never falls back to an organization-wide list or bulk role scan.
+
+### Progressive panels
+
+Startup shows the three dials only. Workspace and environment choices are local. Pause on a collection for 0.9 seconds to inspect only its request counts, requests with tests, and OpenAPI linkage. Its Requests panel then appears. When tests are present, ChatGPT asks whether to run the selected collection and resolves the environment before execution. Results appear after the approved run. Detail and result responses may open a new panel depending on ChatGPT host behavior.

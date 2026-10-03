@@ -63,6 +63,8 @@ function Panel() {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
   const [source, setSource] = useState("all");
+  const [pendingCollection, setPendingCollection] = useState("");
+  const [inspectedCollection, setInspectedCollection] = useState("");
   const [layout, setLayout] = useState(() => {
     try {
       return {
@@ -86,6 +88,8 @@ function Panel() {
   useEffect(
     () =>
       subscribeSnapshot((snapshot) => {
+        setPendingCollection("");
+        setInspectedCollection(snapshot.summary ? snapshot.source : "");
         setCap(snapshot);
         setWorkspace(snapshot.workspaceId);
         setEnv(snapshot.environmentId);
@@ -137,6 +141,8 @@ function Panel() {
   function selectWorkspace(id: string) {
     const next = workspaceData(cap, id);
     setError("");
+    setPendingCollection("");
+    setInspectedCollection("");
     setWorkspace(id);
     setData(next);
     setEnvironments(next?.environments ?? []);
@@ -149,19 +155,6 @@ function Panel() {
     setEnv(value);
     setJob(undefined);
     setConfirm(false);
-  }
-  async function run() {
-    if (!data || !workspace || !env) return;
-    setConfirm(false);
-    await ask(
-      "Run tests once for exactly these collections and environment using the connected Postman execution tool. This is my explicit execution request. Return actual run results; omit endpoint data if unavailable.",
-      {
-        workspaceId: workspace,
-        environmentId: env,
-        source,
-        collectionIds: selected,
-      },
-    );
   }
   const workspaceOptions: { id: string; name: string }[] = [
     { id: "", name: "Dial in a workspace" },
@@ -196,15 +189,35 @@ function Panel() {
   const selected = collections.map((c) => c.id);
   const sourceName =
     source === "all"
-      ? "All collections"
+      ? "Choose a collection"
       : (collections[0]?.name ?? "Collection");
   const sourceIndex =
     source === "all" ? 0 : allCollections.findIndex((c) => c.id === source) + 1;
   const sourceOptions = ["all", ...allCollections.map((c) => c.id)];
   function changeSource(value: string) {
     setSource(value);
+    setJob(undefined);
+    setInspectedCollection("");
+    setPendingCollection(value === "all" ? "" : value);
     setConfirm(false);
   }
+  useEffect(() => {
+    if (!pendingCollection || !workspace) return;
+    const timer = setTimeout(() => {
+      setPendingCollection("");
+      void ask(
+        "Inspect ONLY this collection using the connected Postman collection detail and spec-link tools. Return request count, requests with pre-request scripts, requests with tests (including inherited scripts), and verified OpenAPI linkage in summary. Unknown values must remain null. Preserve the entire workspace inventory and selected IDs. Do not run tests. After rendering the Requests panel, if tests are confirmed present, ask in chat whether to run this specific collection in the selected environment. If environmentId is empty, ask which environment or No environment before execution. Wait for an explicit yes; then execute once and render actual results with the same selection. Do not run on selection alone.",
+        {
+          workspaceId: workspace,
+          environmentId: env,
+          source: pendingCollection,
+          collectionIds: [pendingCollection],
+        },
+      );
+    }, 900);
+    return () => clearTimeout(timer);
+  }, [pendingCollection, workspace, env]);
+  const showRequests = source !== "all" && inspectedCollection === source;
   const hasWorkspaces = !!cap?.workspaces?.length;
   const hasPostmanData = hasWorkspaces || cap?.connected;
   const matchingRows = job?.rows.filter((r) => selected.includes(r.id)) ?? [];
@@ -477,7 +490,7 @@ function Panel() {
                   ? "Inventory was not supplied. Ask ChatGPT to reopen Postmod with complete inventory."
                   : "Choose a workspace to browse its collections."
                 : allCollections.length
-                  ? "Browse loaded collections. No extra loading needed."
+                  ? "Pause on a collection to load its requests and test counts."
                   : data.warnings.length
                     ? "Collection inventory unavailable. See inventory status above."
                     : "No collections in the loaded inventory."}
@@ -485,11 +498,14 @@ function Panel() {
           </div>
         </div>
         <div className="tuner-bottom">
-          <span>TURN TO BROWSE · ALL DIALS STAY LOCAL</span>
+          <span>
+            TURN TO BROWSE · CHOOSE A COLLECTION · DETAILS LOAD AFTER A SHORT
+            PAUSE
+          </span>
         </div>
       </section>
-      {data && layout.meters && (
-        <section className="amplifier">
+      {showRequests && data && layout.meters && (
+        <section className="amplifier" aria-label="Requests panel">
           <div className="screw tl" />
           <div className="screw tr" />
           <div className="screw bl" />
@@ -532,7 +548,7 @@ function Panel() {
             count={`${totals.pre}/${totals.requests} req${known.length < collections.length ? " · partial" : ""}`}
           />
           <Meter
-            label="POST-RESPONSE TESTS"
+            label="REQUESTS WITH TESTS"
             value={
               collections.some((c) => c.tests === null || c.requests === null)
                 ? null
@@ -555,7 +571,7 @@ function Panel() {
           </div>
         </section>
       )}
-      {data && layout.equalizer && (
+      {scopedJob && layout.equalizer && (
         <Equalizer
           key={source}
           job={scopedJob}
@@ -563,131 +579,91 @@ function Panel() {
           selected={selected}
         />
       )}
-      <section
-        className={`transport stereo-transport ${switchOn ? "is-running" : ""}`}
-      >
-        <div className="transport-label">
-          <span className="eyebrow">
-            <i className="deck-led" /> TEST TRANSPORT
-          </span>
-          <span className="execution-route">
-            {data ? sourceName : "Awaiting signal"} <b>→</b>{" "}
-            {environmentOptions[environmentIndex].name}
-          </span>
-          <strong>
-            {running
-              ? "Running your collections…"
-              : scopedJob
-                ? "Session complete"
-                : data
-                  ? "Ready when you are."
-                  : "Not tuned"}
-          </strong>
-          {job?.state === "running" && (
-            <button
-              disabled={busy}
-              onClick={() =>
-                void ask(
-                  "Read status of this existing Postman run. Do not execute or rerun any collection.",
-                  {
-                    workspaceId: workspace,
-                    environmentId: env,
-                    source,
-                    runId: job.id,
-                  },
-                )
-              }
-            >
-              Refresh run status
-            </button>
-          )}
-          {scopedJob && (
-            <span>
-              {finished}/{scopedJob.rows.length} collections · {passed} passed ·{" "}
-              {failed} failed assertions
+      {scopedJob && (
+        <section
+          className={`transport stereo-transport ${switchOn ? "is-running" : ""}`}
+        >
+          <div className="transport-label">
+            <span className="eyebrow">
+              <i className="deck-led" /> TEST TRANSPORT
             </span>
-          )}
-        </div>
-        <div className="transport-actions">
+            <span className="execution-route">
+              {data ? sourceName : "Awaiting signal"} <b>→</b>{" "}
+              {environmentOptions[environmentIndex].name}
+            </span>
+            <strong>
+              {running
+                ? "Running your collections…"
+                : scopedJob
+                  ? "Session complete"
+                  : data
+                    ? "Ready when you are."
+                    : "Not tuned"}
+            </strong>
+            {job?.state === "running" && (
+              <button
+                disabled={busy}
+                onClick={() =>
+                  void ask(
+                    "Read status of this existing Postman run. Do not execute or rerun any collection.",
+                    {
+                      workspaceId: workspace,
+                      environmentId: env,
+                      source,
+                      runId: job.id,
+                    },
+                  )
+                }
+              >
+                Refresh run status
+              </button>
+            )}
+            {scopedJob && (
+              <span>
+                {finished}/{scopedJob.rows.length} collections · {passed} passed
+                · {failed} failed assertions
+              </span>
+            )}
+          </div>
+          <div className="transport-actions">
+            {scopedJob && (
+              <div className="run-stats">
+                <b className={failed ? "orange-text" : ""}>
+                  {passed}
+                  <small>PASS</small>
+                </b>
+                <b className={failed ? "red-text" : ""}>
+                  {failed}
+                  <small>FAIL</small>
+                </b>
+              </div>
+            )}
+          </div>
           {scopedJob && (
-            <div className="run-stats">
-              <b className={failed ? "orange-text" : ""}>
-                {passed}
-                <small>PASS</small>
-              </b>
-              <b className={failed ? "red-text" : ""}>
-                {failed}
-                <small>FAIL</small>
-              </b>
+            <div
+              className="progress"
+              role="progressbar"
+              aria-label="Collections completed"
+              aria-valuenow={finished}
+              aria-valuemin={0}
+              aria-valuemax={scopedJob.rows.length}
+            >
+              <span
+                style={{
+                  width: `${(finished / scopedJob.rows.length) * 100}%`,
+                }}
+              />
             </div>
           )}
-          <button
-            className={`run-toggle ${switchOn ? "engaged" : ""}`}
-            aria-label={running ? "Tests running" : "Run tests"}
-            aria-pressed={!!switchOn}
-            disabled={
-              busy ||
-              running ||
-              !data ||
-              !env ||
-              !selected.length ||
-              !cap?.canRun
-            }
-            onClick={() => setConfirm(true)}
-          >
-            <span className="toggle-label">RUN TESTS</span>
-            <span className="toggle-housing" aria-hidden="true">
-              <i className="toggle-lever" />
-            </span>
-            <span className="toggle-positions">
-              <span className={!switchOn ? "active" : ""}>IDLE</span>
-              <span className={switchOn ? "active" : ""}>RUN</span>
-            </span>
-          </button>
-        </div>
-        {scopedJob && (
-          <div
-            className="progress"
-            role="progressbar"
-            aria-label="Collections completed"
-            aria-valuenow={finished}
-            aria-valuemin={0}
-            aria-valuemax={scopedJob.rows.length}
-          >
-            <span
-              style={{ width: `${(finished / scopedJob.rows.length) * 100}%` }}
-            />
-          </div>
-        )}
-      </section>
-      {!cap?.canRun && cap && (
+        </section>
+      )}
+      {showRequests && !cap?.canRun && cap && (
         <div className="notice">
           Postman execution capability has not been confirmed by ChatGPT.
           Workspace inspection may still be available.
         </div>
       )}
-      {confirm && (
-        <section
-          className="confirm"
-          role="region"
-          aria-label="Confirm test run"
-        >
-          <div>
-            <strong>
-              {`Run ${selected.length} collections against ${env !== "none" ? environments.find((e) => e.id === env)?.name : "their configured URLs"}?`}
-            </strong>
-            <p>
-              These collections send real API requests and may change data in
-              the selected environment.
-            </p>
-          </div>
-          <button onClick={() => setConfirm(false)}>Cancel</button>
-          <button className="run" onClick={() => void run()}>
-            Start run
-          </button>
-        </section>
-      )}
-      {data && layout.details && (
+      {showRequests && data && layout.details && (
         <section className="source-details" aria-label="Collection details">
           <div className="section-heading">
             <h3>{sourceName} · details</h3>

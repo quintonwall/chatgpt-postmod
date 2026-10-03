@@ -2,7 +2,7 @@
 
 Postmod exposes only `open_postmod({snapshot?})` and `render_postmod({snapshot})`. See `server/host-contract.ts` for the validated schema. Both are read-only, stateless render operations returning structured content with `ui://postmod/panel.html`.
 
-Discovery follows `server/workspace-discovery.ts`: resolve the current user, list createdBy-filtered workspaces , and preload their environment/collection references. Never fall back to organization-wide discovery. Open without asking a workspace question, with workspace/environment unselected. All dials select locally from catalogs. All dial changes are local; only explicit test or status actions send host requests. Stop on rate limits and represent unfinished catalogs with errors; do not retry automatically. Never fetch full collection bodies or environment values merely for inventory.
+Discovery follows `server/workspace-discovery.ts`: resolve the current user, list createdBy-filtered workspaces , and preload their environment/collection references. Never fall back to organization-wide discovery. Open without asking a workspace question, with workspace/environment unselected. All dials select locally from catalogs. Workspace and environment changes are local; collection inspection is an explicit host request; only explicit test or status actions send host requests. Stop on rate limits and represent unfinished catalogs with errors; do not retry automatically. Never fetch full collection bodies or environment values merely for inventory.
 
 
 Unknown metrics must be null. Summary requires a matching workspace and explicit environment (use `none` for no environment). Runs must match selection. Rendering does not verify the provenance of supplied data and never grants Postman access. No snapshots are persisted server-side.
@@ -14,3 +14,5 @@ Workspace choices exclude organization-wide visibility alone. Discovery first re
 Snapshot validation rejects missing, duplicate, or mismatched workspace catalogs. Every listed workspace requires inventory or an explicit fetch error before rendering. Workspace selection never initiates a background request, so the UI reports missing inventory rather than waiting indefinitely.
 
 After initialization, unsolicited or duplicate tool results are ignored. Only results matching an outstanding explicit panel request can replace state. This protects local dial selections; it cannot prevent the host itself from creating a separate panel.
+
+Collection inspection returns summary for the selected source, even without an environment. Startup has no summary/job. The UI reveals Requests only for the inspected source, and results only with job data. The host asks permission in chat when tests are present and requires an explicit environment before executing. Counts represent requests with tests, not static assertion definitions.

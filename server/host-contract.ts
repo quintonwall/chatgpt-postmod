@@ -122,14 +122,12 @@ export const snapshotSchema = z
     }
     if (
       s.summary &&
-      (!s.workspaceId ||
-        !s.environmentId ||
-        s.summary.workspace.id !== s.workspaceId)
+      (!s.workspaceId || s.summary.workspace.id !== s.workspaceId)
     )
       ctx.addIssue({
         code: "custom",
         message:
-          "Summary requires a matching selected workspace and an explicitly selected environment (none is allowed).",
+          "Summary requires a matching selected workspace. Inspection does not require an environment; execution does.",
       });
     if (
       s.job &&
@@ -155,4 +153,4 @@ export const emptySnapshot: Snapshot = {
 export function renderSnapshot(input: unknown) {
   return { mode: "host", ...snapshotSchema.parse(input) };
 }
-export const hostInstructions = `Postmod is a display for the user's separately connected Postman plugin. You, the host assistant, must call that plugin's tools using the user's existing authorization. Postmod has no Postman credentials. ${inventoryInstructions} After opening, do not call open_postmod or render_postmod in response to dial changes. All browsing is local. Only an explicit test/run-status action or user request in chat calls for new results. Use available workspace/environment/collection read tools for selected IDs. Return only observed normalized metadata via render_postmod; never tokens, variables, request bodies, or secrets. Unknown metrics must be null, not zero. Preserve all workspaces and selected IDs in each complete snapshot. Set mode host on summary/jobs. Use environmentId none for explicitly selected no-environment. Never invent data or endpoint progress. Set canRun true only if an actual connected execution tool is available. Execute only following explicit user intent for the stated collection IDs/environment; never rerun a write to refresh status. If a tool or authorization is unavailable, return connected false or an actionable error and explain in chat. Correlate dial requests with the exact requestId. For results within an existing workspace use render_postmod. Never render proactively while the user browses the dials. Update the existing panel when the host supports routing tool results to it. Do not ask the user to reopen the panel. Full snapshots must still restore selection if the host creates a new panel instance. Postmod does not itself execute the actions described by its render tools.`;
+export const hostInstructions = `Postmod is a display for the user's separately connected Postman plugin. You, the host assistant, must call that plugin's tools using the user's existing authorization. Postmod has no Postman credentials. ${inventoryInstructions} Initially render only inventory for the dials. A collection-inspection request loads that one collection’s request/test coverage into summary and preserves source. Never execute during inspection. After rendering its Requests panel, if tests are confirmed present, ask whether to run that collection; resolve an explicit environment (none allowed) and wait for yes. Then run once and render results. Workspace and environment choices alone remain local. Use available workspace/environment/collection read tools for selected IDs. Return only observed normalized metadata via render_postmod; never tokens, variables, request bodies, or secrets. Unknown metrics must be null, not zero. Preserve all workspaces and selected IDs in each complete snapshot. Set mode host on summary/jobs. Use environmentId none for explicitly selected no-environment. Never invent data or endpoint progress. Set canRun true only if an actual connected execution tool is available. Execute only following explicit user intent for the stated collection IDs/environment; never rerun a write to refresh status. If a tool or authorization is unavailable, return connected false or an actionable error and explain in chat. Correlate dial requests with the exact requestId. For results within an existing workspace use render_postmod. Never render proactively while the user browses the dials. Update the existing panel when the host supports routing tool results to it. Do not ask the user to reopen the panel. Full snapshots must still restore selection if the host creates a new panel instance. Postmod does not itself execute the actions described by its render tools.`;
