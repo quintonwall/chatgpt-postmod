@@ -35,7 +35,7 @@ async function dispatch(name: Tool, args: unknown) {
 const uri = "ui://postmod/panel.html";
 const descriptions: Record<Tool, string> = {
   open_postmod:
-    "Open the Postmod browser automatically; no workspace or test choice is needed. FIRST call Postman getAuthenticatedUser, THEN getWorkspaces(createdBy=user.id), THEN fetch environment and collection names/IDs for EACH returned workspace. Finally call this tool with workspaces and matching catalogs. Never stop at connection success or ask what to test. All three dials select locally. Fetch no full collection bodies or environment values; report rate limits explicitly.",
+    "Open Postmod automatically: getAuthenticatedUser, then getWorkspaces(createdBy=that user.id) on EVERY page. Discard unfiltered org lists. Multiple matches are expected: preload ALL matching workspaces' environment/collection names and IDs, then pass workspaces and catalogs here. Do not ask which workspace is theirs or what test to run. No matches means an empty filtered list, not a broader search. No full collection bodies or environment values. Report rate limits explicitly.",
   render_postmod:
     "Render a complete Postmod snapshot after using connected Postman tools to satisfy the user's panel request. This tool only renders supplied data.",
 };
