@@ -8,20 +8,20 @@ Use [hosted Postmod](https://chatgpt-postmod.vercel.app/) with the MCP endpoint 
 
 ### 1. Connect Postman
 
-Install the official **Postman** plugin in ChatGPT and connect your account through its sign-in flow.
+Open **Customize → Plugins → Add** in ChatGPT and install the official **Postman** plugin and connect your account through its sign-in flow.
 
 If it isn't available, enable **Settings → Security and login → Developer mode**, then add an MCP connection using `https://mcp.postman.com/mcp` with **OAuth**. This OAuth path supports Postman's US remote server; EU currently requires API keys. [Postman setup details](https://learning.postman.com/docs/reference/postman-api/postman-mcp-server/postman-mcp-remote-server).
 
 ### 2. Add Postmod
 
-With developer mode enabled, open **Plugins → +** and choose **MCP**:
+With developer mode enabled, open **Customize → Plugins → Add** and choose **MCP**:
 
 | Field | Value |
 | --- | --- |
 | Name | Postmod |
 | MCP URL | `https://chatgpt-postmod.vercel.app/api/mcp` |
 | Authentication | None |
-| Icon | [Download PNG](https://raw.githubusercontent.com/quintonwall/chatgpt-postmod/dbc41d2c242729ab90ef9535a1ddccb8d7d6ec76/plugins/postmod/assets/icon.png) |
+| Icon | [Download PNG (under 10 KB)](https://raw.githubusercontent.com/quintonwall/chatgpt-postmod/main/plugins/postmod/assets/icon.png?version=under-10kb) |
 
 Download the icon and upload it in the form. Create and enable the connection. **No ZIP or marketplace installation is required.** Account/workspace policies may restrict developer mode.
 
